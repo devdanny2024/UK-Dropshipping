@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ExternalLink, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/app/components/ui/label';
 import { Badge } from '@/app/components/ui/badge';
 
-export default function ClientProductPage() {
+function PreviewContent() {
   const router = useRouter();
   const params = useSearchParams();
   const [size, setSize] = useState('M');
@@ -156,6 +156,22 @@ export default function ClientProductPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ClientProductPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background py-12">
+          <div className="container mx-auto px-4 max-w-6xl">
+            <div className="rounded-lg border border-border p-8 text-muted-foreground">Loading preview...</div>
+          </div>
+        </div>
+      }
+    >
+      <PreviewContent />
+    </Suspense>
   );
 }
 
