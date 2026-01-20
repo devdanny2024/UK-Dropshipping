@@ -91,6 +91,30 @@ resource "aws_ssm_parameter" "admin_cookie" {
   value = "admin_session"
 }
 
+resource "aws_ssm_parameter" "client_cookie" {
+  name  = "/${var.project_name}/CLIENT_SESSION_COOKIE"
+  type  = "SecureString"
+  value = var.client_session_cookie
+}
+
+resource "aws_ssm_parameter" "session_ttl" {
+  name  = "/${var.project_name}/SESSION_TTL_HOURS"
+  type  = "SecureString"
+  value = var.session_ttl_hours
+}
+
+resource "aws_ssm_parameter" "client_origin" {
+  name  = "/${var.project_name}/CLIENT_ORIGIN"
+  type  = "SecureString"
+  value = var.client_origin
+}
+
+resource "aws_ssm_parameter" "api_base_url" {
+  name  = "/${var.project_name}/API_BASE_URL"
+  type  = "SecureString"
+  value = var.api_base_url
+}
+
 resource "aws_ecs_cluster" "main" {
   name = "${var.project_name}-cluster"
 }
@@ -191,7 +215,11 @@ resource "aws_ecs_task_definition" "backend" {
       secrets = [
         { name = "DATABASE_URL", valueFrom = aws_ssm_parameter.database_url.arn },
         { name = "REDIS_URL", valueFrom = aws_ssm_parameter.redis_url.arn },
-        { name = "ADMIN_SESSION_COOKIE", valueFrom = aws_ssm_parameter.admin_cookie.arn }
+        { name = "ADMIN_SESSION_COOKIE", valueFrom = aws_ssm_parameter.admin_cookie.arn },
+        { name = "CLIENT_SESSION_COOKIE", valueFrom = aws_ssm_parameter.client_cookie.arn },
+        { name = "SESSION_TTL_HOURS", valueFrom = aws_ssm_parameter.session_ttl.arn },
+        { name = "CLIENT_ORIGIN", valueFrom = aws_ssm_parameter.client_origin.arn },
+        { name = "API_BASE_URL", valueFrom = aws_ssm_parameter.api_base_url.arn }
       ],
       logConfiguration = {
         logDriver = "awslogs",

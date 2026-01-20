@@ -32,3 +32,23 @@ variable "redis_url" {
   type      = string
   sensitive = true
 }
+
+variable "client_origin" {
+  type    = string
+  default = "http://localhost:3000"
+}
+
+variable "client_session_cookie" {
+  type    = string
+  default = "client_session"
+}
+
+variable "session_ttl_hours" {
+  type    = string
+  default = "168"
+}
+
+variable "api_base_url" {
+  type    = string
+  default = ""
+}
