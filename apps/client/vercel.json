@@ -1,0 +1,5 @@
+{
+  "installCommand": "corepack enable && pnpm install --no-frozen-lockfile",
+  "buildCommand": "pnpm --filter @uk2me/client build",
+  "outputDirectory": ".next"
+}
