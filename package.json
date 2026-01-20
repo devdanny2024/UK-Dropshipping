@@ -2,7 +2,7 @@
   "name": "uk2me-revamp",
   "private": true,
   "version": "0.1.0",
-  "packageManager": "pnpm@6.35.1",
+  "packageManager": "pnpm@8.15.6",
   "workspaces": [
     "apps/*",
     "packages/*"

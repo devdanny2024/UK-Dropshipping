@@ -1,5 +1,5 @@
 {
-  "installCommand": "cd ../.. && pnpm config set registry https://registry.npmjs.org/ && pnpm install --no-frozen-lockfile",
-  "buildCommand": "cd ../.. && pnpm --filter @uk2me/admin build",
+  "installCommand": "cd ../.. && npx pnpm@8.15.6 config set registry https://registry.npmjs.org/ && npx pnpm@8.15.6 install --no-frozen-lockfile",
+  "buildCommand": "cd ../.. && npx pnpm@8.15.6 --filter @uk2me/admin build",
   "outputDirectory": ".next"
 }
