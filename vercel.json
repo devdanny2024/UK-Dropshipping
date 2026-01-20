@@ -1,0 +1,5 @@
+{
+  "installCommand": "npx pnpm@8.15.6 config set registry https://registry.npmjs.org/ && npx pnpm@8.15.6 install --no-frozen-lockfile",
+  "buildCommand": "npx pnpm@8.15.6 --filter @uk2me/client build",
+  "outputDirectory": "apps/client/.next"
+}
