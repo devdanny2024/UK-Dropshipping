@@ -2,15 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Package, User, ShoppingBag, Settings } from 'lucide-react';
+import { Package, User, ShoppingBag } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { ThemeToggle } from '@/app/components/theme-toggle';
 
 export function ClientHeader() {
   const pathname = usePathname();
   const isOrders = pathname === '/orders' || pathname.startsWith('/orders/');
-
-  const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL ?? 'http://localhost:3001/admin';
 
   return (
     <header className="border-b border-border bg-background">
@@ -41,12 +39,6 @@ export function ClientHeader() {
               <Link href="/signup">Sign up</Link>
             </Button>
             <ThemeToggle />
-            <Button asChild variant="outline" className="gap-2">
-              <Link href={adminUrl}>
-                <Settings className="h-4 w-4" />
-                Admin
-              </Link>
-            </Button>
           </nav>
         </div>
       </div>
