@@ -1,0 +1,32 @@
+{
+  "name": "@uk2me/backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 4000",
+    "build": "next build",
+    "start": "next start -p 4000",
+    "lint": "next lint",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "echo 'no tests'",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "worker": "tsx queue/worker.ts"
+  },
+  "dependencies": {
+    "@uk2me/shared": "workspace:*",
+    "@prisma/client": "^5.20.0",
+    "bullmq": "^5.11.0",
+    "ioredis": "^5.4.1",
+    "next": "^14.2.13",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "prisma": "^5.20.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.3"
+  }
+}

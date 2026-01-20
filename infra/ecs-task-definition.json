@@ -1,0 +1,36 @@
+{
+  "family": "uk2me-backend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "containerDefinitions": [
+    {
+      "name": "backend",
+      "image": "REPLACE_ME",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 4000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" }
+      ],
+      "secrets": [
+        { "name": "DATABASE_URL", "valueFrom": "/uk2me/DATABASE_URL" },
+        { "name": "REDIS_URL", "valueFrom": "/uk2me/REDIS_URL" },
+        { "name": "ADMIN_SESSION_COOKIE", "valueFrom": "/uk2me/ADMIN_SESSION_COOKIE" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/uk2me-backend",
+          "awslogs-region": "eu-west-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

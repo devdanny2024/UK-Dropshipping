@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  PLACED
+  PROCESSING
+  AWAITING_PURCHASE
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  RECEIVED
+  CAPTURED
+  FAILED
+}
+
+enum PurchaseAttemptStatus {
+  QUEUED
+  RUNNING
+  FAILED
+  SUCCESS
+}
+
+enum ShipmentStatus {
+  CREATED
+  IN_TRANSIT
+  DELIVERED
+  ISSUE
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  createdAt DateTime  @default(now())
+  addresses Address[]
+  orders    Order[]
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  userId     String?
+  line1      String
+  line2      String?
+  city       String
+  state      String?
+  postalCode String
+  country    String
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+  orders     Order[]
+}
+
+model ProductSnapshot {
+  id        String   @id @default(cuid())
+  url       String
+  title     String
+  imageUrl  String?
+  price     Float
+  currency  String
+  raw       Json
+  createdAt DateTime @default(now())
+  quotes    Quote[]
+  items     OrderItem[]
+}
+
+model Quote {
+  id                String   @id @default(cuid())
+  productSnapshotId String
+  size              String
+  color             String
+  qty               Int
+  subtotal          Float
+  shipping          Float
+  tax               Float
+  total             Float
+  currency          String
+  addressId         String
+  createdAt         DateTime @default(now())
+  productSnapshot   ProductSnapshot @relation(fields: [productSnapshotId], references: [id])
+  address           Address         @relation(fields: [addressId], references: [id])
+}
+
+model Order {
+  id         String       @id @default(cuid())
+  userId     String?
+  addressId  String?
+  status     OrderStatus
+  currency   String
+  total      Float
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  user       User?        @relation(fields: [userId], references: [id])
+  address    Address?     @relation(fields: [addressId], references: [id])
+  items      OrderItem[]
+  payments   Payment[]
+  attempts   PurchaseAttempt[]
+  shipments  Shipment[]
+  events     OrderEvent[]
+}
+
+model OrderItem {
+  id                String   @id @default(cuid())
+  orderId           String
+  productSnapshotId String
+  qty               Int
+  size              String
+  color             String
+  unitPrice         Float
+  total             Float
+  order             Order           @relation(fields: [orderId], references: [id])
+  productSnapshot   ProductSnapshot @relation(fields: [productSnapshotId], references: [id])
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  orderId         String?
+  paymentRef      String
+  provider        String
+  amount          Float
+  currency        String
+  status          PaymentStatus
+  idempotencyKey  String        @unique
+  createdAt       DateTime      @default(now())
+  order           Order?        @relation(fields: [orderId], references: [id])
+}
+
+model PurchaseAttempt {
+  id              String                @id @default(cuid())
+  orderId         String
+  status          PurchaseAttemptStatus
+  note            String?
+  idempotencyKey  String                @unique
+  createdAt       DateTime              @default(now())
+  order           Order                 @relation(fields: [orderId], references: [id])
+}
+
+model Shipment {
+  id             String         @id @default(cuid())
+  orderId        String
+  carrier        String
+  trackingNumber String
+  status         ShipmentStatus
+  createdAt      DateTime       @default(now())
+  order          Order          @relation(fields: [orderId], references: [id])
+}
+
+model OrderEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  type      String
+  message   String
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id])
+}
