@@ -3,8 +3,14 @@ import { ok, fail } from '../../../../lib/response';
 import { parseBody } from '../../../../lib/parse';
 import { quoteSchema } from '../../../../lib/schemas';
 import { prisma } from '../../../../lib/prisma';
+import { getClientSession } from '../../../../lib/auth';
 
 export async function POST(request: NextRequest) {
+  const session = await getClientSession(request);
+  if (!session) {
+    return fail('UNAUTHORIZED', 'Client session required', 401);
+  }
+
   const { data, error } = await parseBody(request, quoteSchema);
   if (error) return error;
 

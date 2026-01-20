@@ -4,8 +4,14 @@ import { parseBody } from '../../../../lib/parse';
 import { orderSchema } from '../../../../lib/schemas';
 import { prisma } from '../../../../lib/prisma';
 import { createOrderEvent } from '../../../../lib/events';
+import { getClientSession } from '../../../../lib/auth';
 
 export async function POST(request: NextRequest) {
+  const session = await getClientSession(request);
+  if (!session) {
+    return fail('UNAUTHORIZED', 'Client session required', 401);
+  }
+
   const { data, error } = await parseBody(request, orderSchema);
   if (error) return error;
 
@@ -20,6 +26,7 @@ export async function POST(request: NextRequest) {
 
   const order = await prisma.order.create({
     data: {
+      userId: session.userId,
       status: 'PLACED',
       currency: quote.currency,
       total: quote.total,
@@ -61,8 +68,14 @@ export async function POST(request: NextRequest) {
   });
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const session = await getClientSession(request);
+  if (!session) {
+    return fail('UNAUTHORIZED', 'Client session required', 401);
+  }
+
   const orders = await prisma.order.findMany({
+    where: { userId: session.userId },
     orderBy: { createdAt: 'desc' }
   });
 

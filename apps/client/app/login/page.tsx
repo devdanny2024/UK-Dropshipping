@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
@@ -9,11 +10,41 @@ import { Label } from '@/app/components/ui/label';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
 
-  const handleLogin = () => {
-    // TODO: replace with real auth flow.
-    document.cookie = 'client_session=active; path=/';
-    router.push('/orders');
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get('email') ?? '');
+    const password = String(formData.get('password') ?? '');
+
+    try {
+      const response = await fetch(`${apiBase}/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password })
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) {
+        setError(payload?.error?.message ?? 'Login failed. Try again.');
+        return;
+      }
+
+      const next = searchParams.get('next') ?? '/orders';
+      router.push(next);
+    } catch {
+      setError('Login failed. Check your connection and try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -39,15 +70,20 @@ export default function LoginPage() {
               or
               <div className="h-px flex-1 bg-border" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="you@example.com" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="********" />
-            </div>
-            <Button className="w-full" onClick={handleLogin}>Log in</Button>
+            <form className="space-y-4" onSubmit={handleLogin}>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" name="email" type="email" placeholder="you@example.com" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input id="password" name="password" type="password" placeholder="********" required />
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <Button className="w-full" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Logging in...' : 'Log in'}
+              </Button>
+            </form>
             <p className="text-sm text-muted-foreground">
               New here?{' '}
               <Link href="/signup" className="text-foreground underline">

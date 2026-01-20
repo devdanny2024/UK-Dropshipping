@@ -20,7 +20,11 @@ export function ClientHeader() {
   const [isAuthed, setIsAuthed] = useState(false);
 
   useEffect(() => {
-    setIsAuthed(document.cookie.includes('client_session=active'));
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
+    fetch(`${apiBase}/v1/auth/session`, { credentials: 'include' })
+      .then((res) => res.json())
+      .then((payload) => setIsAuthed(Boolean(payload?.ok)))
+      .catch(() => setIsAuthed(false));
   }, []);
 
   const navItems = [

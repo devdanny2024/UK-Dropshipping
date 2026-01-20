@@ -1,12 +1,19 @@
+import type { NextRequest } from 'next/server';
 import { ok, fail } from '../../../../../lib/response';
 import { prisma } from '../../../../../lib/prisma';
+import { getClientSession } from '../../../../../lib/auth';
 
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const session = await getClientSession(request);
+  if (!session) {
+    return fail('UNAUTHORIZED', 'Client session required', 401);
+  }
+
   const order = await prisma.order.findUnique({
-    where: { id: params.id },
+    where: { id: params.id, userId: session.userId },
     include: {
       items: true,
       events: { orderBy: { createdAt: 'asc' } },
