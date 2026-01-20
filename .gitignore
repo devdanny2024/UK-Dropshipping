@@ -6,4 +6,3 @@ out
 !.env.example
 .DS_Store
 coverage
-pnpm-lock.yaml

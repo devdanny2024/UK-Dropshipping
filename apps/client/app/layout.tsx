@@ -5,8 +5,8 @@ import { ClientHeader } from '@/app/components/ClientHeader';
 import { Toaster } from '@/app/components/ui/sonner';
 
 export const metadata = {
-  title: 'UK2ME Client',
-  description: 'Client experience for UK2ME'
+  title: 'Uk2meonline',
+  description: 'Uk2meonline client experience'
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -18,7 +18,7 @@ export function ClientHeader() {
         <div className="flex items-center justify-between">
           <Link className="flex items-center gap-2" href="/">
             <Package className="h-6 w-6 text-foreground" />
-            <span className="text-xl font-semibold text-foreground">UK2ME</span>
+            <span className="text-xl font-semibold text-foreground">Uk2meonline</span>
           </Link>
 
           <nav className="flex items-center gap-2">
@@ -33,6 +33,12 @@ export function ClientHeader() {
                 <User className="h-4 w-4" />
                 Profile
               </Link>
+            </Button>
+            <Button asChild variant={pathname === '/login' ? 'default' : 'ghost'} className="gap-2">
+              <Link href="/login">Log in</Link>
+            </Button>
+            <Button asChild variant={pathname === '/signup' ? 'default' : 'ghost'} className="gap-2">
+              <Link href="/signup">Sign up</Link>
             </Button>
             <ThemeToggle />
             <Button asChild variant="outline" className="gap-2">
