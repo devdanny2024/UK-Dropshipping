@@ -1,5 +1,4 @@
 import type { NextRequest } from 'next/server';
-import type { Order } from '@prisma/client';
 import { ok } from '../../../../../lib/response';
 import { prisma } from '../../../../../lib/prisma';
 import { requireAdmin } from '../../../../../lib/auth';
@@ -15,7 +14,7 @@ export async function GET(request: NextRequest) {
   });
 
   return ok(
-    orders.map((order: Order) => ({
+    orders.map((order: { id: string; status: string; total: number; currency: string; createdAt: Date }) => ({
       id: order.id,
       status: order.status,
       total: order.total,

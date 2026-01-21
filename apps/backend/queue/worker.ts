@@ -1,7 +1,19 @@
 import { Worker } from 'bullmq';
-import IORedis from 'ioredis';
 
-const connection = new IORedis(process.env.REDIS_URL ?? 'redis://localhost:6379');
+function getRedisConnection() {
+  const url = new URL(process.env.REDIS_URL ?? 'redis://localhost:6379');
+  const connection = {
+    host: url.hostname,
+    port: Number(url.port || 6379),
+    password: url.password || undefined
+  } as const;
+  if (url.protocol === 'rediss:') {
+    return { ...connection, tls: {} };
+  }
+  return connection;
+}
+
+const connection = getRedisConnection();
 
 new Worker(
   'resolveProduct',
