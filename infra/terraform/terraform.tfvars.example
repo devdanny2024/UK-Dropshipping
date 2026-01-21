@@ -1,0 +1,8 @@
+project_name          = "uk2me"
+aws_region            = "eu-west-2"
+database_url          = "postgresql://USER:PASSWORD@HOST:5432/uk2me"
+redis_url             = "redis://:PASSWORD@HOST:6379"
+client_origin         = "https://YOUR-CLIENT-DOMAIN"
+client_session_cookie = "client_session"
+session_ttl_hours     = "168"
+api_base_url          = ""
