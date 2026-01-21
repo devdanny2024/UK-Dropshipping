@@ -21,13 +21,17 @@
       "secrets": [
         { "name": "DATABASE_URL", "valueFrom": "/uk2me/DATABASE_URL" },
         { "name": "REDIS_URL", "valueFrom": "/uk2me/REDIS_URL" },
-        { "name": "ADMIN_SESSION_COOKIE", "valueFrom": "/uk2me/ADMIN_SESSION_COOKIE" }
+        { "name": "ADMIN_SESSION_COOKIE", "valueFrom": "/uk2me/ADMIN_SESSION_COOKIE" },
+        { "name": "CLIENT_SESSION_COOKIE", "valueFrom": "/uk2me/CLIENT_SESSION_COOKIE" },
+        { "name": "SESSION_TTL_HOURS", "valueFrom": "/uk2me/SESSION_TTL_HOURS" },
+        { "name": "CLIENT_ORIGIN", "valueFrom": "/uk2me/CLIENT_ORIGIN" },
+        { "name": "API_BASE_URL", "valueFrom": "/uk2me/API_BASE_URL" }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "/ecs/uk2me-backend",
-          "awslogs-region": "eu-west-1",
+          "awslogs-region": "eu-west-2",
           "awslogs-stream-prefix": "ecs"
         }
       }
