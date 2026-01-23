@@ -50,7 +50,8 @@ export default function StoresPage() {
     }
   ];
 
-  const partnerCategories = [
+  const partnerCategories = useMemo(
+    () => [
     {
       name: 'Shoes (Men & Women)',
       segments: [
@@ -251,7 +252,9 @@ export default function StoresPage() {
         }
       ]
     }
-  ];
+    ],
+    []
+  );
 
   const filteredPartnerCategories = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -382,7 +385,7 @@ export default function StoresPage() {
             {filteredPartnerCategories.length === 0 && (
               <Card>
                 <CardContent className="py-10 text-center text-muted-foreground">
-                  No stores matched "{query}". Try another search.
+                  No stores matched &quot;{query}&quot;. Try another search.
                 </CardContent>
               </Card>
             )}
