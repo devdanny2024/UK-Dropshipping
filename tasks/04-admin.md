@@ -1,5 +1,6 @@
 # 04 Admin
 
-- [ ] Validate admin routes
-- [ ] Test middleware protection
+- [x] Validate admin routes
+- [x] Test middleware protection
 - [ ] Review orders dashboard
+- [ ] Define roles + permissions model (backend)

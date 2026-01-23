@@ -1,6 +1,6 @@
 # 01 Bootstrap
 
 - [ ] Initialize pnpm workspace
-- [ ] Install dependencies
-- [ ] Configure environment files
+- [x] Install dependencies
+- [x] Configure environment files
 - [ ] Run `pnpm dev`
