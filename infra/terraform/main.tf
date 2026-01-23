@@ -174,7 +174,7 @@ resource "aws_lb_target_group" "backend" {
   vpc_id      = data.aws_vpc.default.id
 
   health_check {
-    path = "/v1/health"
+    path = "/api/v1/health"
   }
 }
 
