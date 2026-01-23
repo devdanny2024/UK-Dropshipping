@@ -4,6 +4,8 @@
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "256",
   "memory": "512",
+  "executionRoleArn": "arn:aws:iam::910345601772:role/uk2me-task-execution",
+  "taskRoleArn": "arn:aws:iam::910345601772:role/uk2me-task",
   "containerDefinitions": [
     {
       "name": "backend",
