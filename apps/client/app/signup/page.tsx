@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
@@ -21,7 +21,25 @@ function SignupContent() {
   const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/proxy';
+
+  const passwordScore = useMemo(() => {
+    let score = 0;
+    if (password.length >= 8) score += 1;
+    if (/[A-Z]/.test(password)) score += 1;
+    if (/[0-9]/.test(password)) score += 1;
+    if (/[^A-Za-z0-9]/.test(password)) score += 1;
+    return score;
+  }, [password]);
+
+  const strengthLabel = useMemo(() => {
+    if (passwordScore <= 1) return 'Weak';
+    if (passwordScore === 2) return 'Fair';
+    if (passwordScore === 3) return 'Good';
+    return 'Strong';
+  }, [passwordScore]);
 
   const handleSignup = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -31,19 +49,38 @@ function SignupContent() {
     const formData = new FormData(event.currentTarget);
     const name = String(formData.get('name') ?? '');
     const email = String(formData.get('email') ?? '');
-    const password = String(formData.get('password') ?? '');
+    const formPassword = String(formData.get('password') ?? '');
+    const formConfirm = String(formData.get('confirmPassword') ?? '');
+
+    if (formPassword.length < 8) {
+      setError('Password must be at least 8 characters.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (formPassword !== formConfirm) {
+      setError('Passwords do not match.');
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const response = await fetch(`${apiBase}/v1/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({ name, email, password: formPassword })
       });
 
       const payload = await response.json();
       if (!response.ok || !payload.ok) {
-        setError(payload?.error?.message ?? 'Signup failed. Try again.');
+        const apiMessage = payload?.error?.message;
+        if (Array.isArray(payload?.error?.details)) {
+          const detail = payload.error.details[0]?.message;
+          setError(detail ?? apiMessage ?? 'Signup failed. Try again.');
+        } else {
+          setError(apiMessage ?? 'Signup failed. Try again.');
+        }
         return;
       }
 
@@ -90,7 +127,47 @@ function SignupContent() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" name="password" type="password" placeholder="********" required />
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="********"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                />
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 flex-1 rounded-full bg-muted">
+                      <div
+                        className={`h-2 rounded-full transition-all ${
+                          passwordScore <= 1
+                            ? 'bg-red-500'
+                            : passwordScore === 2
+                            ? 'bg-yellow-500'
+                            : 'bg-green-500'
+                        }`}
+                        style={{ width: `${(passwordScore / 4) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-muted-foreground">{strengthLabel}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Use 8+ characters, a number, and a symbol for a stronger password.
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm password</Label>
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  placeholder="********"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  required
+                />
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button className="w-full" type="submit" disabled={isSubmitting}>
