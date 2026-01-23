@@ -1,5 +1,5 @@
 import type { NextRequest } from 'next/server';
-import { ok } from '../../../../../lib/response';
+import { ok, fail } from '../../../../../lib/response';
 import { prisma } from '../../../../../lib/prisma';
 import { requireAdmin } from '../../../../../lib/auth';
 
@@ -8,8 +8,20 @@ export async function GET(request: NextRequest) {
   if (auth) return auth;
 
   const status = request.nextUrl.searchParams.get('status');
+  const allowedStatuses = [
+    'PLACED',
+    'PROCESSING',
+    'AWAITING_PURCHASE',
+    'SHIPPED',
+    'DELIVERED',
+    'CANCELLED'
+  ] as const;
+
+  if (status && !allowedStatuses.includes(status as (typeof allowedStatuses)[number])) {
+    return fail('INVALID_STATUS', 'Invalid status filter', 400);
+  }
   const orders = await prisma.order.findMany({
-    where: status ? { status } : undefined,
+    where: status ? { status: status as (typeof allowedStatuses)[number] } : undefined,
     orderBy: { createdAt: 'desc' }
   });
 
