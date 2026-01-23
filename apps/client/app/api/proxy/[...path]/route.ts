@@ -5,7 +5,7 @@ const backendBase = process.env.BACKEND_HTTP_BASE_URL ?? 'http://localhost:4000'
 
 async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname.replace('/api/proxy', '');
-  const targetUrl = `${backendBase}${path}${request.nextUrl.search}`;
+  const targetUrl = `${backendBase}/api${path}${request.nextUrl.search}`;
   const body = request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.text();
 
   const headers = new Headers(request.headers);
@@ -19,6 +19,9 @@ async function proxy(request: NextRequest) {
 
   const responseHeaders = new Headers();
   response.headers.forEach((value, key) => {
+    if (key.toLowerCase() === 'content-encoding' || key.toLowerCase() === 'content-length') {
+      return;
+    }
     responseHeaders.append(key, value);
   });
 
