@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   const payment = await prisma.payment.create({
     data: {
       paymentRef: data.paymentRef,
-      provider: data.provider,
+      provider: data.provider ?? 'mock',
       amount: data.amount,
       currency: data.currency,
       status: 'RECEIVED',
