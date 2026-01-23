@@ -4,6 +4,7 @@ import { parseBody } from '../../../../../lib/parse';
 import { signupSchema } from '../../../../../lib/schemas';
 import { prisma } from '../../../../../lib/prisma';
 import { createSession, getClientCookieName, hashPassword } from '../../../../../lib/auth';
+import { sendMail } from '../../../../../lib/mailer';
 
 export async function POST(request: NextRequest) {
   const { data, error } = await parseBody(request, signupSchema);
@@ -23,6 +24,12 @@ export async function POST(request: NextRequest) {
       name: data.name,
       passwordHash: hashPassword(data.password)
     }
+  });
+
+  await sendMail({
+    to: user.email,
+    subject: 'Welcome to UK2MeOnline',
+    text: `Hi ${user.name ?? 'there'}, your UK2MeOnline account is ready.`
   });
 
   const session = await createSession(user.id);

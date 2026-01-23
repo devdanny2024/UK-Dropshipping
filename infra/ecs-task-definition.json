@@ -27,7 +27,11 @@
         { "name": "CLIENT_SESSION_COOKIE", "valueFrom": "/uk2me/CLIENT_SESSION_COOKIE" },
         { "name": "SESSION_TTL_HOURS", "valueFrom": "/uk2me/SESSION_TTL_HOURS" },
         { "name": "CLIENT_ORIGIN", "valueFrom": "/uk2me/CLIENT_ORIGIN" },
-        { "name": "API_BASE_URL", "valueFrom": "/uk2me/API_BASE_URL" }
+        { "name": "API_BASE_URL", "valueFrom": "/uk2me/API_BASE_URL" },
+        { "name": "ADMIN_EMAIL", "valueFrom": "/uk2me/ADMIN_EMAIL" },
+        { "name": "ADMIN_PASSWORD", "valueFrom": "/uk2me/ADMIN_PASSWORD" },
+        { "name": "SMTP_URL", "valueFrom": "/uk2me/SMTP_URL" },
+        { "name": "SMTP_FROM", "valueFrom": "/uk2me/SMTP_FROM" }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",

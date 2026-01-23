@@ -115,6 +115,30 @@ resource "aws_ssm_parameter" "api_base_url" {
   value = var.api_base_url
 }
 
+resource "aws_ssm_parameter" "admin_email" {
+  name  = "/${var.project_name}/ADMIN_EMAIL"
+  type  = "SecureString"
+  value = var.admin_email
+}
+
+resource "aws_ssm_parameter" "admin_password" {
+  name  = "/${var.project_name}/ADMIN_PASSWORD"
+  type  = "SecureString"
+  value = var.admin_password
+}
+
+resource "aws_ssm_parameter" "smtp_url" {
+  name  = "/${var.project_name}/SMTP_URL"
+  type  = "SecureString"
+  value = var.smtp_url
+}
+
+resource "aws_ssm_parameter" "smtp_from" {
+  name  = "/${var.project_name}/SMTP_FROM"
+  type  = "SecureString"
+  value = var.smtp_from
+}
+
 resource "aws_ecs_cluster" "main" {
   name = "${var.project_name}-cluster"
 }
@@ -219,7 +243,11 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "CLIENT_SESSION_COOKIE", valueFrom = aws_ssm_parameter.client_cookie.arn },
         { name = "SESSION_TTL_HOURS", valueFrom = aws_ssm_parameter.session_ttl.arn },
         { name = "CLIENT_ORIGIN", valueFrom = aws_ssm_parameter.client_origin.arn },
-        { name = "API_BASE_URL", valueFrom = aws_ssm_parameter.api_base_url.arn }
+        { name = "API_BASE_URL", valueFrom = aws_ssm_parameter.api_base_url.arn },
+        { name = "ADMIN_EMAIL", valueFrom = aws_ssm_parameter.admin_email.arn },
+        { name = "ADMIN_PASSWORD", valueFrom = aws_ssm_parameter.admin_password.arn },
+        { name = "SMTP_URL", valueFrom = aws_ssm_parameter.smtp_url.arn },
+        { name = "SMTP_FROM", valueFrom = aws_ssm_parameter.smtp_from.arn }
       ],
       logConfiguration = {
         logDriver = "awslogs",

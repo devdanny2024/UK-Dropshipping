@@ -5,6 +5,7 @@ import { orderSchema } from '../../../../lib/schemas';
 import { prisma } from '../../../../lib/prisma';
 import { createOrderEvent } from '../../../../lib/events';
 import { getClientSession } from '../../../../lib/auth';
+import { sendMail } from '../../../../lib/mailer';
 
 export async function POST(request: NextRequest) {
   const session = await getClientSession(request);
@@ -58,6 +59,15 @@ export async function POST(request: NextRequest) {
   });
 
   await createOrderEvent(order.id, 'ORDER', 'Order created');
+
+  const user = await prisma.user.findUnique({ where: { id: session.userId } });
+  if (user?.email) {
+    await sendMail({
+      to: user.email,
+      subject: `Order ${order.id} received`,
+      text: `We have received your order ${order.id}. We'll keep you updated on the next steps.`
+    });
+  }
 
   return ok({
     id: order.id,

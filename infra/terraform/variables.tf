@@ -52,3 +52,24 @@ variable "api_base_url" {
   type    = string
   default = ""
 }
+
+variable "admin_email" {
+  type    = string
+  default = ""
+}
+
+variable "admin_password" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "smtp_url" {
+  type    = string
+  default = "disabled"
+}
+
+variable "smtp_from" {
+  type    = string
+  default = "UK2ME <no-reply@uk2meonline.com>"
+}
