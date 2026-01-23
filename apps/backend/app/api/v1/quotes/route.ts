@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
   const quote = await prisma.quote.create({
     data: {
       productSnapshotId: data.productSnapshotId,
+      addressId: data.addressId,
       size: data.size,
       color: data.color,
       qty: data.qty,
