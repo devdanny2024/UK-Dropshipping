@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
@@ -287,6 +288,18 @@ export default function StoresPage() {
     return score % 5 === 0 ? 'offline' : 'online';
   };
 
+  const buildPreviewUrl = (store: string) => {
+    const normalized = store.trim().toLowerCase();
+    let domain = normalized;
+    if (!normalized.includes('.')) {
+      domain = `${normalized.replace(/[^a-z0-9]/g, '')}.com`;
+    }
+    if (domain.startsWith('www.')) {
+      domain = domain.slice(4);
+    }
+    return `/preview?url=${encodeURIComponent(`https://${domain}/product`)}`;
+  };
+
   return (
     <div className="min-h-screen bg-background py-12">
       <div className="container mx-auto px-4 max-w-6xl space-y-8">
@@ -355,9 +368,10 @@ export default function StoresPage() {
                         {segment.stores.map((store) => {
                           const status = getAdapterStatus(store);
                           return (
-                            <div
+                            <Link
                               key={store}
-                              className="flex items-center justify-between rounded-lg border border-border px-4 py-3"
+                              href={buildPreviewUrl(store)}
+                              className="flex items-center justify-between rounded-lg border border-border px-4 py-3 transition hover:bg-muted/40"
                             >
                               <div className="flex items-center gap-3">
                                 <span
@@ -373,7 +387,7 @@ export default function StoresPage() {
                               <Badge variant={status === 'online' ? 'default' : 'destructive'}>
                                 {status === 'online' ? 'Online' : 'Offline'}
                               </Badge>
-                            </div>
+                            </Link>
                           );
                         })}
                       </div>
