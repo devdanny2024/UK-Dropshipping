@@ -36,11 +36,17 @@ enum ShipmentStatus {
   ISSUE
 }
 
+enum AddressType {
+  SHIPPING
+  BILLING
+}
+
 model User {
   id        String    @id @default(cuid())
   email     String    @unique
   name      String?
   passwordHash String
+  phone     String?
   emailVerifiedAt DateTime?
   createdAt DateTime  @default(now())
   addresses Address[]
@@ -53,12 +59,16 @@ model User {
 model Address {
   id         String   @id @default(cuid())
   userId     String?
+  label      String?
   line1      String
   line2      String?
   city       String
   state      String?
   postalCode String
   country    String
+  phone      String?
+  type       AddressType @default(SHIPPING)
+  isDefault  Boolean  @default(false)
   createdAt  DateTime @default(now())
   user       User?    @relation(fields: [userId], references: [id])
   orders     Order[]

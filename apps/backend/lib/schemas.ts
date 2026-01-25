@@ -79,3 +79,21 @@ export const resetPasswordSchema = z.object({
 export const resendVerificationSchema = z.object({
   email: z.string().email()
 });
+
+export const updateProfileSchema = z.object({
+  name: z.string().min(2).optional(),
+  phone: z.string().min(6).optional()
+});
+
+export const addressSchema = z.object({
+  label: z.string().min(2).optional(),
+  line1: z.string().min(3),
+  line2: z.string().optional(),
+  city: z.string().min(2),
+  state: z.string().optional(),
+  postalCode: z.string().min(2),
+  country: z.string().min(2),
+  phone: z.string().min(6).optional(),
+  type: z.enum(['SHIPPING', 'BILLING']).default('SHIPPING'),
+  isDefault: z.boolean().optional()
+});
