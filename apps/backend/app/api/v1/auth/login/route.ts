@@ -17,6 +17,10 @@ export async function POST(request: NextRequest) {
     return fail('INVALID_CREDENTIALS', 'Email or password is incorrect', 401);
   }
 
+  if (!user.emailVerifiedAt) {
+    return fail('EMAIL_NOT_VERIFIED', 'Please verify your email before logging in', 403);
+  }
+
   const session = await createSession(user.id);
   const response = ok({
     user: { id: user.id, email: user.email, name: user.name }

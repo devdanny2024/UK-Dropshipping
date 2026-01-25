@@ -21,11 +21,13 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/proxy';
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setInfo(null);
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
@@ -42,11 +44,16 @@ function LoginContent() {
 
       const payload = await response.json();
       if (!response.ok || !payload.ok) {
-        setError(payload?.error?.message ?? 'Login failed. Try again.');
+        const code = payload?.error?.code;
+        if (code === 'EMAIL_NOT_VERIFIED') {
+          setInfo('Please verify your email before logging in.');
+        } else {
+          setError(payload?.error?.message ?? 'Login failed. Try again.');
+        }
         return;
       }
 
-      const next = searchParams.get('next') ?? '/orders';
+      const next = searchParams.get('next') ?? '/dashboard';
       router.push(next);
     } catch {
       setError('Login failed. Check your connection and try again.');
@@ -88,6 +95,14 @@ function LoginContent() {
                 <Input id="password" name="password" type="password" placeholder="********" required />
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
+              {info && (
+                <p className="text-sm text-muted-foreground">
+                  {info}{' '}
+                  <Link className="underline" href="/verify-email">
+                    Verify email
+                  </Link>
+                </p>
+              )}
               <Button className="w-full" type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Logging in...' : 'Log in'}
               </Button>
@@ -96,6 +111,12 @@ function LoginContent() {
               New here?{' '}
               <Link href="/signup" className="text-foreground underline">
                 Create an account
+              </Link>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Forgot your password?{' '}
+              <Link href="/forgot-password" className="text-foreground underline">
+                Reset it
               </Link>
             </p>
           </CardContent>

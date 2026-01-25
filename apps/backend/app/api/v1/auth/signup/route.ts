@@ -3,7 +3,7 @@ import { ok, fail } from '../../../../../lib/response';
 import { parseBody } from '../../../../../lib/parse';
 import { signupSchema } from '../../../../../lib/schemas';
 import { prisma } from '../../../../../lib/prisma';
-import { createSession, getClientCookieName, hashPassword } from '../../../../../lib/auth';
+import { createSession, generateToken, getClientCookieName, hashPassword } from '../../../../../lib/auth';
 import { sendMail } from '../../../../../lib/mailer';
 
 export async function POST(request: NextRequest) {
@@ -26,6 +26,16 @@ export async function POST(request: NextRequest) {
     }
   });
 
+  const verificationToken = generateToken();
+  const verificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  await prisma.emailVerificationToken.create({
+    data: {
+      userId: user.id,
+      token: verificationToken,
+      expiresAt: verificationExpiry
+    }
+  });
+
   const displayName = user.name ?? 'there';
   const welcomeHtml = `
     <div style="font-family: 'Segoe UI', Arial, sans-serif; background: #f4f2ee; padding: 32px;">
@@ -45,9 +55,9 @@ export async function POST(request: NextRequest) {
             <li>Save addresses for lightning-fast checkout.</li>
           </ul>
           <div style="margin-top: 22px;">
-            <a href="https://uk-dropshipping-client.vercel.app/"
+            <a href="https://uk-dropshipping-client.vercel.app/verify-email?token=${verificationToken}"
               style="display: inline-block; background: #111827; color: #ffffff; text-decoration: none; padding: 12px 18px; border-radius: 10px; font-weight: 600;">
-              Start shopping now
+              Verify your email
             </a>
           </div>
         </div>
@@ -60,14 +70,15 @@ export async function POST(request: NextRequest) {
 
   await sendMail({
     to: user.email,
-    subject: 'Welcome to UK2MeOnline',
-    text: `Hi ${displayName}, your UK2MeOnline account is ready.`,
+    subject: 'Welcome to UK2MeOnline - verify your email',
+    text: `Hi ${displayName}, please verify your email: https://uk-dropshipping-client.vercel.app/verify-email?token=${verificationToken}`,
     html: welcomeHtml
   });
 
   const session = await createSession(user.id);
   const response = ok({
-    user: { id: user.id, email: user.email, name: user.name }
+    user: { id: user.id, email: user.email, name: user.name },
+    verificationRequired: true
   });
 
   response.cookies.set(getClientCookieName(), session.token, {

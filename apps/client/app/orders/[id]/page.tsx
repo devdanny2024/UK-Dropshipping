@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/ca
 import { Button } from '@/app/components/ui/button';
 import { StatusBadge } from '@/app/components/StatusBadge';
 import { Timeline } from '@/app/components/Timeline';
+import { AccountShell } from '@/app/components/AccountShell';
 import { mockOrders } from '@/data/mockData';
 
 export default function ClientTrackingPage() {
@@ -20,8 +21,8 @@ export default function ClientTrackingPage() {
   }, [rawId]);
 
   return (
-    <div className="min-h-screen bg-background py-12">
-      <div className="container mx-auto px-4 max-w-5xl space-y-6">
+    <AccountShell title="Orders">
+      <div className="space-y-6">
         <Button variant="ghost" className="gap-2" onClick={() => router.push('/orders')}>
           <ArrowLeft className="h-4 w-4" />
           Back to Orders
@@ -83,6 +84,6 @@ export default function ClientTrackingPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AccountShell>
   );
 }

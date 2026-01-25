@@ -87,7 +87,7 @@ function SignupContent() {
         return;
       }
 
-      const next = searchParams.get('next') ?? '/orders';
+      const next = searchParams.get('next') ?? '/dashboard';
       router.push(next);
     } catch {
       setError('Signup failed. Check your connection and try again.');

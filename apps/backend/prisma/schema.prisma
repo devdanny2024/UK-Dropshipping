@@ -41,10 +41,13 @@ model User {
   email     String    @unique
   name      String?
   passwordHash String
+  emailVerifiedAt DateTime?
   createdAt DateTime  @default(now())
   addresses Address[]
   orders    Order[]
   sessions  Session[]
+  emailVerifications EmailVerificationToken[]
+  passwordResets PasswordResetToken[]
 }
 
 model Address {
@@ -166,6 +169,28 @@ model OrderEvent {
 }
 
 model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
   id        String   @id @default(cuid())
   userId    String
   token     String   @unique

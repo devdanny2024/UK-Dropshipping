@@ -37,6 +37,10 @@ export async function createSession(userId: string) {
   return { token, expiresAt };
 }
 
+export function generateToken() {
+  return crypto.randomBytes(24).toString('hex');
+}
+
 export async function getClientSession(request: NextRequest) {
   const token = request.cookies.get(CLIENT_COOKIE)?.value;
   if (!token) return null;

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Menu, Package, Store, User, ShoppingBag } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
@@ -16,18 +16,35 @@ import {
 
 export function ClientHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const isOrders = pathname === '/orders' || pathname.startsWith('/orders/');
   const [isAuthed, setIsAuthed] = useState(false);
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/proxy';
 
   useEffect(() => {
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
     fetch(`${apiBase}/v1/auth/session`, { credentials: 'include' })
       .then((res) => res.json())
       .then((payload) => setIsAuthed(Boolean(payload?.ok)))
       .catch(() => setIsAuthed(false));
-  }, []);
+  }, [apiBase]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${apiBase}/v1/auth/logout`, { method: 'POST', credentials: 'include' });
+    } finally {
+      setIsAuthed(false);
+      router.push('/login');
+    }
+  };
 
   const navItems = [
+    {
+      href: '/dashboard',
+      label: 'Dashboard',
+      icon: <Package className="h-4 w-4" />,
+      active: pathname === '/dashboard',
+      show: isAuthed,
+    },
     {
       href: '/stores',
       label: 'Stores',
@@ -54,14 +71,14 @@ export function ClientHeader() {
       label: 'Log in',
       icon: null,
       active: pathname === '/login',
-      show: true,
+      show: !isAuthed,
     },
     {
       href: '/signup',
       label: 'Sign up',
       icon: null,
       active: pathname === '/signup',
-      show: true,
+      show: !isAuthed,
     },
   ];
 
@@ -92,6 +109,11 @@ export function ClientHeader() {
                   </Link>
                 </Button>
               ))}
+            {isAuthed && (
+              <Button variant="outline" onClick={handleLogout}>
+                Log out
+              </Button>
+            )}
             <ThemeToggle />
           </nav>
 
@@ -126,6 +148,11 @@ export function ClientHeader() {
                         </Link>
                       </Button>
                     ))}
+                  {isAuthed && (
+                    <Button variant="outline" className="w-full justify-start" onClick={handleLogout}>
+                      Log out
+                    </Button>
+                  )}
                 </div>
               </SheetContent>
             </Sheet>
