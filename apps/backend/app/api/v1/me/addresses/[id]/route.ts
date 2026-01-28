@@ -3,6 +3,7 @@ import { ok, fail } from '../../../../../../lib/response';
 import { parseBody } from '../../../../../../lib/parse';
 import { addressSchema } from '../../../../../../lib/schemas';
 import { prisma } from '../../../../../../lib/prisma';
+import { Prisma } from '@prisma/client';
 import { getClientSession } from '../../../../../../lib/auth';
 
 export async function PATCH(request: NextRequest, context: { params: { id: string } }) {
@@ -22,7 +23,7 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
     return fail('NOT_FOUND', 'Address not found', 404);
   }
 
-  const updated = await prisma.$transaction(async (tx: typeof prisma) => {
+  const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const nextType = data.type ?? existing.type;
     if (data.isDefault) {
       await tx.address.updateMany({

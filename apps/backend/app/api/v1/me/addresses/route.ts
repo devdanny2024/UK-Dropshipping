@@ -3,6 +3,7 @@ import { ok, fail } from '../../../../../lib/response';
 import { parseBody } from '../../../../../lib/parse';
 import { addressSchema } from '../../../../../lib/schemas';
 import { prisma } from '../../../../../lib/prisma';
+import { Prisma } from '@prisma/client';
 import { getClientSession } from '../../../../../lib/auth';
 
 export async function POST(request: NextRequest) {
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
   const { data, error } = await parseBody(request, addressSchema);
   if (error) return error;
 
-  const address = await prisma.$transaction(async (tx: typeof prisma) => {
+  const address = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     if (data.isDefault) {
       await tx.address.updateMany({
         where: { userId: session.userId, type: data.type },
