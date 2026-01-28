@@ -15,6 +15,7 @@ FROM deps AS build
 COPY apps/backend apps/backend
 COPY packages/shared packages/shared
 WORKDIR /app/apps/backend
+RUN pnpm install --no-frozen-lockfile --filter @uk2me/backend...
 RUN pnpm prisma:generate
 RUN pnpm build
 
