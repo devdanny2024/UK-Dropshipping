@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Menu, Package, Store, User, ShoppingBag } from 'lucide-react';
+import { Menu, Package, Store, User, ShoppingBag, ShoppingCart } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { ThemeToggle } from '@/app/components/theme-toggle';
+import { useCart } from '@/app/components/cart/use-cart';
 import {
   Sheet,
   SheetContent,
@@ -20,6 +21,7 @@ export function ClientHeader() {
   const isOrders = pathname === '/orders' || pathname.startsWith('/orders/');
   const [isAuthed, setIsAuthed] = useState(false);
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/proxy';
+  const cartCount = useCart((state) => state.count());
 
   useEffect(() => {
     fetch(`${apiBase}/v1/auth/session`, { credentials: 'include' })
@@ -44,6 +46,13 @@ export function ClientHeader() {
       icon: <Package className="h-4 w-4" />,
       active: pathname === '/dashboard',
       show: isAuthed,
+    },
+    {
+      href: '/shop',
+      label: 'Shop',
+      icon: <Package className="h-4 w-4" />,
+      active: pathname === '/shop' || pathname.startsWith('/category') || pathname.startsWith('/product'),
+      show: true,
     },
     {
       href: '/stores',
@@ -109,6 +118,16 @@ export function ClientHeader() {
                   </Link>
                 </Button>
               ))}
+            <Button asChild variant="ghost" className="relative">
+              <Link href="/cart">
+                <ShoppingCart className="h-4 w-4" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 rounded-full bg-primary text-primary-foreground text-xs px-1.5">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+            </Button>
             {isAuthed && (
               <Button variant="outline" onClick={handleLogout}>
                 Log out
@@ -148,6 +167,12 @@ export function ClientHeader() {
                         </Link>
                       </Button>
                     ))}
+                  <Button asChild variant="ghost" className="w-full justify-start gap-2">
+                    <Link href="/cart">
+                      <ShoppingCart className="h-4 w-4" />
+                      Cart {cartCount > 0 ? `(${cartCount})` : ''}
+                    </Link>
+                  </Button>
                   {isAuthed && (
                     <Button variant="outline" className="w-full justify-start" onClick={handleLogout}>
                       Log out

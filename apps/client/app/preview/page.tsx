@@ -2,12 +2,13 @@
 
 import { Suspense, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ExternalLink, Clock } from 'lucide-react';
+import { ExternalLink, Clock, ShoppingCart } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Label } from '@/app/components/ui/label';
 import { Badge } from '@/app/components/ui/badge';
+import { useCart } from '@/app/components/cart/use-cart';
 
 function PreviewContent() {
   const router = useRouter();
@@ -15,6 +16,7 @@ function PreviewContent() {
   const [size, setSize] = useState('M');
   const [color, setColor] = useState('Black');
   const [quantity, setQuantity] = useState(1);
+  const { addItem } = useCart();
 
   const product = useMemo(() => {
     let url = params.get('url') ?? 'https://example.com/product';
@@ -128,6 +130,25 @@ function PreviewContent() {
                 <div className="pt-4 space-y-3">
                   <Button onClick={handleGenerateQuote} className="w-full" size="lg">
                     Generate Quote
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={() =>
+                      addItem({
+                        name: product.name,
+                        slug: undefined,
+                        imageUrl: product.image,
+                        priceGBP: product.price,
+                        quantity,
+                        externalUrl: product.url,
+                        productCode: undefined,
+                        categoryName: product.store
+                      })
+                    }
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    Add to cart
                   </Button>
                   <Button
                     variant="outline"

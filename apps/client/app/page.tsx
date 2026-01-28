@@ -3,8 +3,19 @@ import { ArrowRight, ShieldCheck, Sparkles, Truck, Globe, Clock, Star } from 'lu
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
+import { ProductCard } from '@/app/components/ProductCard';
 
-export default function ClientHomePage() {
+const backendBase = process.env.BACKEND_HTTP_BASE_URL ?? 'http://localhost:4000';
+
+async function getFeatured() {
+  const res = await fetch(`${backendBase}/api/products/featured`, { cache: 'no-store' });
+  if (!res.ok) return [];
+  const payload = await res.json();
+  return payload?.data?.products ?? [];
+}
+
+export default async function ClientHomePage() {
+  const featured = await getFeatured();
   return (
     <div className="min-h-screen bg-background">
       <section className="container mx-auto px-4 py-20">
@@ -108,6 +119,22 @@ export default function ClientHomePage() {
               </CardHeader>
             </Card>
           ))}
+        </div>
+      </section>
+
+      <section className="container mx-auto px-4 pb-20">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold">Featured Products</h2>
+            <Button asChild variant="outline">
+              <Link href="/shop">View all</Link>
+            </Button>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {featured.map((product: any) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
         </div>
       </section>
 
