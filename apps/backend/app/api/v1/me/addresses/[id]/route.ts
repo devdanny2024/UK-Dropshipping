@@ -22,7 +22,7 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
     return fail('NOT_FOUND', 'Address not found', 404);
   }
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx: typeof prisma) => {
     const nextType = data.type ?? existing.type;
     if (data.isDefault) {
       await tx.address.updateMany({

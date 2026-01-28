@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   const { data, error } = await parseBody(request, addressSchema);
   if (error) return error;
 
-  const address = await prisma.$transaction(async (tx) => {
+  const address = await prisma.$transaction(async (tx: typeof prisma) => {
     if (data.isDefault) {
       await tx.address.updateMany({
         where: { userId: session.userId, type: data.type },

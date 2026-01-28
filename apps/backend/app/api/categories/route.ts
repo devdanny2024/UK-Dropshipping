@@ -9,7 +9,7 @@ export async function GET() {
   });
 
   return ok({
-    categories: categories.map((cat) => ({
+    categories: categories.map((cat: typeof categories[number]) => ({
       ...cat,
       productCount: cat._count.products
     }))
