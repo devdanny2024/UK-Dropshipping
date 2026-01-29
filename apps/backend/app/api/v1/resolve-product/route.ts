@@ -3,7 +3,7 @@ import { ok, fail } from '../../../../lib/response';
 import { parseBody } from '../../../../lib/parse';
 import { resolveProductSchema } from '../../../../lib/schemas';
 import { prisma } from '../../../../lib/prisma';
-import { resolveProductQueue } from '../../../../lib/queue';
+import { getQueues } from '../../../../lib/queue';
 
 export async function POST(request: NextRequest) {
   const { data, error } = await parseBody(request, resolveProductSchema);
@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
     }
   });
 
+  const { resolveProductQueue } = getQueues();
   await resolveProductQueue.add('resolveProduct', { snapshotId: snapshot.id, url });
 
   return ok({

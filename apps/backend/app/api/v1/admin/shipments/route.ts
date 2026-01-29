@@ -4,7 +4,7 @@ import { parseBody } from '../../../../../lib/parse';
 import { shipmentSchema } from '../../../../../lib/schemas';
 import { prisma } from '../../../../../lib/prisma';
 import { createOrderEvent } from '../../../../../lib/events';
-import { trackShipmentQueue } from '../../../../../lib/queue';
+import { getQueues } from '../../../../../lib/queue';
 import { requireAdmin } from '../../../../../lib/auth';
 
 export async function POST(request: NextRequest) {
@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
     }
   });
 
+  const { trackShipmentQueue } = getQueues();
   await trackShipmentQueue.add('trackShipment', {
     orderId: data.orderId,
     shipmentId: shipment.id

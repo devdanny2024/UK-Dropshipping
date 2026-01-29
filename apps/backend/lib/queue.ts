@@ -13,8 +13,22 @@ function getRedisConnection() {
   return connection;
 }
 
-const connection = getRedisConnection();
+let queues:
+  | {
+      resolveProductQueue: Queue;
+      purchaseAttemptQueue: Queue;
+      trackShipmentQueue: Queue;
+    }
+  | null = null;
 
-export const resolveProductQueue = new Queue('resolveProduct', { connection });
-export const purchaseAttemptQueue = new Queue('purchaseAttempt', { connection });
-export const trackShipmentQueue = new Queue('trackShipment', { connection });
+export function getQueues() {
+  if (!queues) {
+    const connection = getRedisConnection();
+    queues = {
+      resolveProductQueue: new Queue('resolveProduct', { connection }),
+      purchaseAttemptQueue: new Queue('purchaseAttempt', { connection }),
+      trackShipmentQueue: new Queue('trackShipment', { connection })
+    };
+  }
+  return queues;
+}

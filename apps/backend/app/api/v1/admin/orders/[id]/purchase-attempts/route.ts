@@ -4,7 +4,7 @@ import { parseBody } from '../../../../../../../lib/parse';
 import { purchaseAttemptSchema } from '../../../../../../../lib/schemas';
 import { prisma } from '../../../../../../../lib/prisma';
 import { createOrderEvent } from '../../../../../../../lib/events';
-import { purchaseAttemptQueue } from '../../../../../../../lib/queue';
+import { getQueues } from '../../../../../../../lib/queue';
 import { requireAdmin } from '../../../../../../../lib/auth';
 
 export async function POST(
@@ -44,6 +44,7 @@ export async function POST(
     }
   });
 
+  const { purchaseAttemptQueue } = getQueues();
   await purchaseAttemptQueue.add('purchaseAttempt', { orderId: params.id, attemptId: attempt.id });
   await createOrderEvent(params.id, 'PURCHASE_ATTEMPT', 'Purchase attempt queued');
 

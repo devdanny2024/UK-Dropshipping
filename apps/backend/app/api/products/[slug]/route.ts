@@ -1,6 +1,8 @@
 import { ok, fail } from '../../../../lib/response';
 import { prisma } from '../../../../lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(_request: Request, context: { params: { slug: string } }) {
   const product = await prisma.product.findFirst({
     where: { slug: context.params.slug, isActive: true, category: { isActive: true } },
