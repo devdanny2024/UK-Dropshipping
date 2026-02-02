@@ -75,14 +75,43 @@ function extractPriceFromJsonLd(product: any) {
   return { price, currency };
 }
 
+function getResolveTimeoutMs() {
+  const raw = process.env.PRODUCT_RESOLVE_TIMEOUT_MS;
+  const value = raw ? Number(raw) : NaN;
+  if (!Number.isFinite(value) || value <= 0) {
+    return 10000;
+  }
+  return value;
+}
+
+async function fetchWithTimeout(url: string, init?: RequestInit) {
+  const controller = new AbortController();
+  const timeoutMs = getResolveTimeoutMs();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...init,
+      signal: controller.signal
+    });
+    return response;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function resolveProductFromUrl(url: string): Promise<ResolvedProduct> {
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     // Use a generic desktop user agent string to improve chances of getting full HTML.
     headers: {
       'User-Agent':
         'Mozilla/5.0 (compatible; UK2MEProductResolver/1.0; +https://uk2meonline.com)'
     }
   });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch product URL (status ${response.status})`);
+  }
 
   const html = await response.text();
   const dom = new JSDOM(html);
@@ -144,4 +173,3 @@ export async function resolveProductFromUrl(url: string): Promise<ResolvedProduc
     raw
   };
 }
-
