@@ -19,11 +19,11 @@ Request:
 ```
 Response:
 ```json
-{ "ok": true, "data": { "id": "...", "url": "...", "title": "...", "price": 0, "currency": "GBP" } }
+{ "ok": true, "data": { "id": "...", "url": "...", "title": "...", "price": 55, "currency": "GBP" } }
 ```
 Notes:
-- Creates a `ProductSnapshot` and enqueues a background job to resolve real product details (title, image, price, currency) from the upstream store page.
-- The returned `price` is the initial placeholder; the worker updates the snapshot asynchronously once resolution completes.
+- Resolves product details (title, image, price, currency) from the upstream store page synchronously and creates a `ProductSnapshot`.
+- The returned data is immediately usable by the client/admin for pre-filling products and quotes.
 
 ## POST /v1/quotes
 Request:

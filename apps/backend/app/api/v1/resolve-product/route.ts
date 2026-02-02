@@ -3,28 +3,28 @@ import { ok, fail } from '../../../../lib/response';
 import { parseBody } from '../../../../lib/parse';
 import { resolveProductSchema } from '../../../../lib/schemas';
 import { prisma } from '../../../../lib/prisma';
-import { getQueues } from '../../../../lib/queue';
+import { resolveProductFromUrl } from '../../../../lib/adapters';
 
 export async function POST(request: NextRequest) {
   const { data, error } = await parseBody(request, resolveProductSchema);
   if (error) return error;
 
   const url = data.url;
-  const title = `Snapshot for ${new URL(url).hostname}`;
+
+  // Resolve product details synchronously so callers (admin/client) get
+  // a usable snapshot immediately, without depending on the background worker.
+  const resolved = await resolveProductFromUrl(url);
 
   const snapshot = await prisma.productSnapshot.create({
     data: {
       url,
-      title,
-      imageUrl: null,
-      price: 0,
-      currency: 'GBP',
-      raw: { source: 'queued' }
+      title: resolved.title,
+      imageUrl: resolved.imageUrl,
+      price: resolved.price ?? 0,
+      currency: resolved.currency ?? 'GBP',
+      raw: resolved.raw as any
     }
   });
-
-  const { resolveProductQueue } = getQueues();
-  await resolveProductQueue.add('resolveProduct', { snapshotId: snapshot.id, url });
 
   return ok({
     id: snapshot.id,
