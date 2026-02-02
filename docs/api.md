@@ -19,8 +19,11 @@ Request:
 ```
 Response:
 ```json
-{ "ok": true, "data": { "id": "...", "url": "...", "title": "...", "price": 55, "currency": "GBP" } }
+{ "ok": true, "data": { "id": "...", "url": "...", "title": "...", "price": 0, "currency": "GBP" } }
 ```
+Notes:
+- Creates a `ProductSnapshot` and enqueues a background job to resolve real product details (title, image, price, currency) from the upstream store page.
+- The returned `price` is the initial placeholder; the worker updates the snapshot asynchronously once resolution completes.
 
 ## POST /v1/quotes
 Request:
@@ -59,3 +62,21 @@ Response: order, items, events, shipments.
 
 ## GET /v1/health
 Health check for load balancer.
+
+## GET /adapters
+Response:
+```json
+{
+  "ok": true,
+  "data": {
+    "adapters": [
+      { "id": "asos.com", "name": "ASOS", "domain": "asos.com", "status": "online" },
+      { "id": "zara.com", "name": "Zara", "domain": "zara.com", "status": "online" },
+      { "id": "amazon.co.uk", "name": "Amazon UK", "domain": "amazon.co.uk", "status": "online" },
+      { "id": "nike.com", "name": "Nike UK", "domain": "nike.com", "status": "online" },
+      { "id": "hm.com", "name": "H&M", "domain": "hm.com", "status": "online" }
+    ]
+  }
+}
+```
+Used by the Admin app to display configured store adapters and their basic status.

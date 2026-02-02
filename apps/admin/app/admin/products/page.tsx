@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Pencil, Trash2, Star } from 'lucide-react';
+import { Plus, Pencil, Trash2, Star, Link as LinkIcon } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/app/components/ui/dialog';
@@ -35,6 +35,7 @@ type Product = {
 };
 
 const apiBase = '/api/proxy/admin';
+const publicApiBase = '/api/proxy/v1';
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -48,6 +49,15 @@ export default function AdminProductsPage() {
   const [formCategoryId, setFormCategoryId] = useState<string>('');
   const [formIsActive, setFormIsActive] = useState(true);
   const [formIsFeatured, setFormIsFeatured] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importUrl, setImportUrl] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importTitle, setImportTitle] = useState<string | null>(null);
+  const [importPrice, setImportPrice] = useState<number | null>(null);
+  const [importCurrency, setImportCurrency] = useState<string | null>(null);
+  const [importImageUrl, setImportImageUrl] = useState<string | null>(null);
+  const [importSnapshotId, setImportSnapshotId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -73,6 +83,45 @@ export default function AdminProductsPage() {
   useEffect(() => {
     void load();
   }, []);
+
+  const handleImportResolve = async () => {
+    setImportError(null);
+    setImportTitle(null);
+    setImportPrice(null);
+    setImportCurrency(null);
+    setImportImageUrl(null);
+    setImportSnapshotId(null);
+
+    if (!importUrl) {
+      setImportError('Please enter a product URL.');
+      return;
+    }
+
+    setImportLoading(true);
+    try {
+      const res = await fetch(`${publicApiBase}/resolve-product`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ url: importUrl })
+      });
+      const payload = await res.json();
+      if (!res.ok || !payload.ok) {
+        throw new Error(payload?.error?.message ?? 'Failed to resolve product');
+      }
+
+      const data = payload.data;
+      setImportSnapshotId(data.id);
+      setImportTitle(data.title);
+      setImportPrice(typeof data.price === 'number' ? data.price : null);
+      setImportCurrency(data.currency ?? null);
+      setImportImageUrl(data.imageUrl ?? null);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Failed to resolve product');
+    } finally {
+      setImportLoading(false);
+    }
+  };
 
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -160,33 +209,34 @@ export default function AdminProductsPage() {
     });
   }, [products, filterCategory, search]);
 
-  return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Products</h1>
-          <p className="text-sm text-muted-foreground">Manage catalogue products and featured items.</p>
-        </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button
-              className="gap-2"
-              onClick={() => {
-                setEditing(null);
-                setFormCategoryId('');
-                setFormIsActive(true);
-                setFormIsFeatured(false);
-              }}
-            >
-              <Plus className="h-4 w-4" />
-              New Product
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>{editing ? 'Edit product' : 'Create product'}</DialogTitle>
-            </DialogHeader>
-            <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSave}>
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold">Products</h1>
+            <p className="text-sm text-muted-foreground">Manage catalogue products and featured items.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  className="gap-2"
+                  onClick={() => {
+                    setEditing(null);
+                    setFormCategoryId('');
+                    setFormIsActive(true);
+                    setFormIsFeatured(false);
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                  New Product
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>{editing ? 'Edit product' : 'Create product'}</DialogTitle>
+                </DialogHeader>
+                <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSave}>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="name">Name</Label>
                 <Input id="name" name="name" defaultValue={editing?.name ?? ''} required />
@@ -262,10 +312,104 @@ export default function AdminProductsPage() {
               <DialogFooter className="md:col-span-2">
                 <Button type="submit">{editing ? 'Save changes' : 'Create'}</Button>
               </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+            <Dialog open={importOpen} onOpenChange={setImportOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <LinkIcon className="h-4 w-4" />
+                  Import from URL
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Import product from store</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="import-url">Product URL (ASOS, Zara, Amazon UK, Nike, H&amp;M)</Label>
+                    <Input
+                      id="import-url"
+                      placeholder="https://www.asos.com/..."
+                      value={importUrl}
+                      onChange={(event) => setImportUrl(event.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="button"
+                      onClick={() => void handleImportResolve()}
+                      disabled={importLoading || !importUrl}
+                    >
+                      {importLoading ? 'Resolving…' : 'Fetch details'}
+                    </Button>
+                    {importSnapshotId && !importLoading && (
+                      <span className="text-xs text-muted-foreground">Snapshot created: {importSnapshotId}</span>
+                    )}
+                  </div>
+                  {importError && <p className="text-sm text-destructive">{importError}</p>}
+                  {importTitle && (
+                    <div className="border rounded-md p-3 space-y-2">
+                      <p className="text-sm font-medium">{importTitle}</p>
+                      {importImageUrl && (
+                        <img
+                          src={importImageUrl}
+                          alt={importTitle}
+                          className="h-24 w-24 rounded-md object-cover border"
+                        />
+                      )}
+                      <p className="text-sm text-muted-foreground">
+                        {importPrice !== null
+                          ? `Price: ${importCurrency ?? 'GBP'} ${importPrice.toFixed(2)}`
+                          : 'Price not detected yet'}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const defaultCategoryId = categories[0]?.id ?? '';
+                          setFormCategoryId(defaultCategoryId);
+                          setFormIsActive(true);
+                          setFormIsFeatured(false);
+                          setEditing(null);
+                          setOpen(true);
+                          setImportOpen(false);
+                          setTimeout(() => {
+                            const nameInput = document.getElementById('name') as HTMLInputElement | null;
+                            const externalUrlInput = document.getElementById('externalUrl') as HTMLInputElement | null;
+                            const imagesInput = document.getElementById('images') as HTMLInputElement | null;
+                            const priceInput = document.getElementById('priceGBP') as HTMLInputElement | null;
+                            const currencyInput = document.getElementById('currency') as HTMLInputElement | null;
+
+                            if (nameInput && importTitle) {
+                              nameInput.value = importTitle;
+                            }
+                            if (externalUrlInput && importUrl) {
+                              externalUrlInput.value = importUrl;
+                            }
+                            if (imagesInput && importImageUrl) {
+                              imagesInput.value = importImageUrl;
+                            }
+                            if (priceInput && importPrice !== null) {
+                              priceInput.value = importPrice.toString();
+                            }
+                            if (currencyInput && importCurrency) {
+                              currencyInput.value = importCurrency;
+                            }
+                          }, 50);
+                        }}
+                      >
+                        Use in new product
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
 
       <Card>
         <CardHeader>

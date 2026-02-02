@@ -17,9 +17,9 @@ export async function POST(request: NextRequest) {
       url,
       title,
       imageUrl: null,
-      price: 55.0,
+      price: 0,
       currency: 'GBP',
-      raw: { source: 'mock' }
+      raw: { source: 'queued' }
     }
   });
 
