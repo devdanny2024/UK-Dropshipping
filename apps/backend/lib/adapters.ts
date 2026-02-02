@@ -51,6 +51,55 @@ function extractOpenGraphMeta(doc: Document, property: string) {
   return meta?.getAttribute('content') ?? null;
 }
 
+function extractPriceFromNextData(doc: Document) {
+  const script = doc.querySelector('script#__NEXT_DATA__');
+  if (!script?.textContent) {
+    return { price: null as number | null, currency: null as string | null };
+  }
+
+  try {
+    const data = JSON.parse(script.textContent);
+    const stack: any[] = [data];
+    let foundPrice: number | null = null;
+    let foundCurrency: string | null = null;
+
+    while (stack.length) {
+      const node = stack.pop();
+      if (!node || typeof node !== 'object') continue;
+
+      const anyNode = node as any;
+
+      if (typeof anyNode.currentPrice === 'number' && foundPrice == null) {
+        foundPrice = anyNode.currentPrice;
+      } else if (typeof anyNode.fullPrice === 'number' && foundPrice == null) {
+        foundPrice = anyNode.fullPrice;
+      }
+
+      if (typeof anyNode.currency === 'string' && !foundCurrency) {
+        foundCurrency = anyNode.currency;
+      } else if (typeof anyNode.currencyCode === 'string' && !foundCurrency) {
+        foundCurrency = anyNode.currencyCode;
+      }
+
+      if (foundPrice != null && foundCurrency) break;
+
+      if (Array.isArray(node)) {
+        for (const item of node) {
+          if (item && typeof item === 'object') stack.push(item);
+        }
+      } else {
+        for (const value of Object.values(node)) {
+          if (value && typeof value === 'object') stack.push(value);
+        }
+      }
+    }
+
+    return { price: foundPrice, currency: foundCurrency };
+  } catch {
+    return { price: null as number | null, currency: null as string | null };
+  }
+}
+
 function extractPriceFromJsonLd(product: any) {
   const offers = product.offers;
   if (!offers) return { price: null as number | null, currency: null as string | null };
@@ -136,6 +185,17 @@ export async function resolveProductFromUrl(url: string): Promise<ResolvedProduc
     const priceInfo = extractPriceFromJsonLd(productJsonLd);
     price = priceInfo.price;
     currency = priceInfo.currency;
+  }
+
+  // Nike / Next.js-style pages often expose price in __NEXT_DATA__.
+  if (price == null || !currency) {
+    const nextPrice = extractPriceFromNextData(document);
+    if (price == null && nextPrice.price != null) {
+      price = nextPrice.price;
+    }
+    if (!currency && nextPrice.currency) {
+      currency = nextPrice.currency;
+    }
   }
 
   // Fallbacks using standard meta tags if JSON-LD is missing or incomplete.
