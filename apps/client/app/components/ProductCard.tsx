@@ -44,7 +44,7 @@ export function ProductCard({ product }: ProductCardProps) {
           )}
         </div>
         <CardTitle className="text-base">{product.name}</CardTitle>
-        <div className="mt-auto flex gap-2">
+        <div className="mt-auto grid grid-cols-2 gap-2">
           <Button asChild variant="outline" className="w-full">
             <Link href={`/product/${product.slug}`}>View</Link>
           </Button>
