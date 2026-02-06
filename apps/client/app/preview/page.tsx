@@ -1,8 +1,8 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ExternalLink, Clock, ShoppingCart } from 'lucide-react';
+import { ExternalLink, Clock, ShoppingCart, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
@@ -18,6 +18,15 @@ function PreviewContent() {
   const [color, setColor] = useState('Black');
   const [quantity, setQuantity] = useState(1);
   const [productUrl, setProductUrl] = useState(() => params.get('url') ?? '');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [resolved, setResolved] = useState<{
+    title: string;
+    imageUrl?: string | null;
+    price?: number | null;
+    currency?: string | null;
+    url: string;
+  } | null>(null);
   const { addItem } = useCart();
 
   const hasUrl = Boolean(params.get('url'));
@@ -30,19 +39,71 @@ function PreviewContent() {
     } catch {
       url = 'https://example.com/product';
     }
+    const fallbackImage = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800';
     return {
-      name: 'Sample Product',
-      price: 99.99,
-      currency: 'GBP',
-      image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800',
+      name: resolved?.title ?? 'Sample Product',
+      price: resolved?.price ?? 99.99,
+      currency: resolved?.currency ?? 'GBP',
+      image: resolved?.imageUrl ?? fallbackImage,
       store,
       url
     };
-  }, [params]);
+  }, [params, resolved]);
 
   const handleGenerateQuote = () => {
     router.push('/quote');
   };
+
+  useEffect(() => {
+    const url = params.get('url');
+    if (!url) return;
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    fetch('/api/proxy/v1/resolve-product', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const payload = await res.json().catch(() => null);
+          const message = payload?.error?.message ?? 'Unable to resolve product details.';
+          throw new Error(message);
+        }
+        return res.json();
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        const data = payload?.data ?? payload;
+        if (!data?.title) {
+          throw new Error('Product details were incomplete. Please try another link.');
+        }
+        setResolved({
+          title: data.title,
+          imageUrl: data.imageUrl ?? null,
+          price: data.price ?? null,
+          currency: data.currency ?? null,
+          url: data.url ?? url
+        });
+      })
+      .catch((err: Error) => {
+        if (!cancelled) {
+          setError(err.message);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [params]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -99,6 +160,17 @@ function PreviewContent() {
                 <CardTitle className="text-2xl">{product.name}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                {isLoading && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Resolving product details...
+                  </div>
+                )}
+                {error && (
+                  <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200">
+                    {error}
+                  </div>
+                )}
                 <div>
                   <div className="text-3xl font-bold text-foreground">
                     {product.currency} {product.price.toFixed(2)}
@@ -165,12 +237,13 @@ function PreviewContent() {
                 </div>
 
                 <div className="pt-4 space-y-3">
-                  <Button onClick={handleGenerateQuote} className="w-full" size="lg">
+                  <Button onClick={handleGenerateQuote} className="w-full" size="lg" disabled={isLoading || !!error}>
                     Generate Quote
                   </Button>
                   <Button
                     variant="outline"
                     className="w-full gap-2"
+                    disabled={isLoading || !!error}
                     onClick={() =>
                       addItem({
                         name: product.name,
