@@ -8,6 +8,7 @@ import { Button } from '@/app/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Label } from '@/app/components/ui/label';
 import { Badge } from '@/app/components/ui/badge';
+import { Input } from '@/app/components/ui/input';
 import { useCart } from '@/app/components/cart/use-cart';
 
 function PreviewContent() {
@@ -16,7 +17,10 @@ function PreviewContent() {
   const [size, setSize] = useState('M');
   const [color, setColor] = useState('Black');
   const [quantity, setQuantity] = useState(1);
+  const [productUrl, setProductUrl] = useState(() => params.get('url') ?? '');
   const { addItem } = useCart();
+
+  const hasUrl = Boolean(params.get('url'));
 
   const product = useMemo(() => {
     let url = params.get('url') ?? 'https://example.com/product';
@@ -39,6 +43,39 @@ function PreviewContent() {
   const handleGenerateQuote = () => {
     router.push('/quote');
   };
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!productUrl.trim()) return;
+    router.push(`/preview?url=${encodeURIComponent(productUrl.trim())}`);
+  };
+
+  if (!hasUrl) {
+    return (
+      <div className="min-h-screen bg-background py-12">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <Card>
+            <CardHeader>
+              <CardTitle>Paste a product link</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <form className="flex flex-col gap-3 sm:flex-row" onSubmit={handleSubmit}>
+                <Input
+                  placeholder="Paste a UK store product link"
+                  value={productUrl}
+                  onChange={(event) => setProductUrl(event.target.value)}
+                />
+                <Button type="submit">Create preview</Button>
+              </form>
+              <p className="text-sm text-muted-foreground">
+                We&apos;ll fetch the product details, show a quote, and guide you through checkout.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background py-12">
