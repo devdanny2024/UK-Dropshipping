@@ -13,7 +13,16 @@ export async function POST(request: NextRequest) {
 
   // Resolve product details synchronously so callers (admin/client) get
   // a usable snapshot immediately, without depending on the background worker.
-  const resolved = await resolveProductFromUrl(url);
+  let resolved;
+  try {
+    resolved = await resolveProductFromUrl(url);
+  } catch (err) {
+    const message =
+      err instanceof Error
+        ? err.message
+        : 'Failed to resolve product from URL';
+    return fail('RESOLVE_FAILED', message, 502);
+  }
 
   const snapshot = await prisma.productSnapshot.create({
     data: {
