@@ -16,7 +16,7 @@ type NikeColorVariant = {
   pdpUrl: string | null;
 };
 
-function resolveNikeProduct(doc: Document) {
+function resolveNikeProductData(doc: Document) {
   const data = extractNextData(doc);
   const pageProps = data?.props?.pageProps;
   if (!pageProps) return null;
@@ -149,7 +149,7 @@ export function resolveNikeProduct(
   doc: Document,
   url: string
 ): ResolvedProduct | null {
-  const resolved = resolveNikeProduct(doc);
+  const resolved = resolveNikeProductData(doc);
   if (!resolved) return null;
 
   return {
