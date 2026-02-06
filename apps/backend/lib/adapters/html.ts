@@ -1,14 +1,6 @@
-import { JSDOM } from 'jsdom';
+import type { ResolvedProduct } from './types';
 
-export type ResolvedProduct = {
-  title: string;
-  imageUrl: string | null;
-  price: number | null;
-  currency: string | null;
-  raw: unknown;
-};
-
-function extractJsonLdProduct(doc: Document) {
+export function extractJsonLdProduct(doc: Document) {
   const scripts = Array.from(doc.querySelectorAll('script[type="application/ld+json"]'));
   const products: any[] = [];
 
@@ -46,19 +38,29 @@ function hasProductType(node: any) {
   return false;
 }
 
-function extractOpenGraphMeta(doc: Document, property: string) {
+export function extractOpenGraphMeta(doc: Document, property: string) {
   const meta = doc.querySelector(`meta[property="${property}"], meta[name="${property}"]`);
   return meta?.getAttribute('content') ?? null;
 }
 
-function extractPriceFromNextData(doc: Document) {
+export function extractNextData(doc: Document) {
   const script = doc.querySelector('script#__NEXT_DATA__');
-  if (!script?.textContent) {
+  if (!script?.textContent) return null;
+
+  try {
+    return JSON.parse(script.textContent);
+  } catch {
+    return null;
+  }
+}
+
+export function extractPriceFromNextData(doc: Document) {
+  const data = extractNextData(doc);
+  if (!data) {
     return { price: null as number | null, currency: null as string | null };
   }
 
   try {
-    const data = JSON.parse(script.textContent);
     const stack: any[] = [data];
     let foundPrice: number | null = null;
     let foundCurrency: string | null = null;
@@ -100,7 +102,7 @@ function extractPriceFromNextData(doc: Document) {
   }
 }
 
-function extractPriceFromJsonLd(product: any) {
+export function extractPriceFromJsonLd(product: any) {
   const offers = product.offers;
   if (!offers) return { price: null as number | null, currency: null as string | null };
 
@@ -124,49 +126,8 @@ function extractPriceFromJsonLd(product: any) {
   return { price, currency };
 }
 
-function getResolveTimeoutMs() {
-  const raw = process.env.PRODUCT_RESOLVE_TIMEOUT_MS;
-  const value = raw ? Number(raw) : NaN;
-  if (!Number.isFinite(value) || value <= 0) {
-    return 10000;
-  }
-  return value;
-}
-
-async function fetchWithTimeout(url: string, init?: RequestInit) {
-  const controller = new AbortController();
-  const timeoutMs = getResolveTimeoutMs();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, {
-      ...init,
-      signal: controller.signal
-    });
-    return response;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-export async function resolveProductFromUrl(url: string): Promise<ResolvedProduct> {
-  const response = await fetchWithTimeout(url, {
-    // Use a generic desktop user agent string to improve chances of getting full HTML.
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (compatible; UK2MEProductResolver/1.0; +https://uk2meonline.com)'
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch product URL (status ${response.status})`);
-  }
-
-  const html = await response.text();
-  const dom = new JSDOM(html);
-  const { document } = dom.window;
-
-  const productJsonLd = extractJsonLdProduct(document);
+export function resolveGenericProduct(doc: Document, url: string): ResolvedProduct {
+  const productJsonLd = extractJsonLdProduct(doc);
 
   let title: string | null = null;
   let imageUrl: string | null = null;
@@ -187,9 +148,8 @@ export async function resolveProductFromUrl(url: string): Promise<ResolvedProduc
     currency = priceInfo.currency;
   }
 
-  // Nike / Next.js-style pages often expose price in __NEXT_DATA__.
   if (price == null || !currency) {
-    const nextPrice = extractPriceFromNextData(document);
+    const nextPrice = extractPriceFromNextData(doc);
     if (price == null && nextPrice.price != null) {
       price = nextPrice.price;
     }
@@ -198,38 +158,33 @@ export async function resolveProductFromUrl(url: string): Promise<ResolvedProduc
     }
   }
 
-  // Fallbacks using standard meta tags if JSON-LD is missing or incomplete.
   if (!title) {
     title =
-      extractOpenGraphMeta(document, 'og:title') ??
-      document.querySelector('title')?.textContent?.trim() ??
+      extractOpenGraphMeta(doc, 'og:title') ??
+      doc.querySelector('title')?.textContent?.trim() ??
       null;
   }
 
   if (!imageUrl) {
-    imageUrl = extractOpenGraphMeta(document, 'og:image');
+    imageUrl = extractOpenGraphMeta(doc, 'og:image');
   }
 
   if (!currency) {
-    const ogCurrency = extractOpenGraphMeta(document, 'product:price:currency');
+    const ogCurrency = extractOpenGraphMeta(doc, 'product:price:currency');
     currency = ogCurrency ?? null;
   }
-
-  const raw = {
-    source: 'html',
-    url,
-    jsonLd: productJsonLd,
-    og: {
-      title: extractOpenGraphMeta(document, 'og:title'),
-      image: extractOpenGraphMeta(document, 'og:image')
-    }
-  };
 
   return {
     title: title ?? new URL(url).hostname,
     imageUrl,
     price,
     currency,
-    raw
+    raw: {
+      jsonLd: productJsonLd,
+      og: {
+        title: extractOpenGraphMeta(doc, 'og:title'),
+        image: extractOpenGraphMeta(doc, 'og:image')
+      }
+    }
   };
 }

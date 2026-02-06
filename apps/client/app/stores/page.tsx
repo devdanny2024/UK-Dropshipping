@@ -6,6 +6,7 @@ import { Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Input } from '@/app/components/ui/input';
+import { partnerStoreCategories, storeDomainOverrides } from '@uk2me/shared';
 
 export default function StoresPage() {
   const [query, setQuery] = useState('');
@@ -51,211 +52,7 @@ export default function StoresPage() {
     }
   ];
 
-  const partnerCategories = useMemo(
-    () => [
-    {
-      name: 'Shoes (Men & Women)',
-      segments: [
-        {
-          label: 'UK Stores',
-          stores: [
-            'ALDO',
-            'DUNE',
-            'Clarks',
-            'Jones',
-            'Office',
-            'NEXT',
-            'Kurt Geiger',
-            'Sole Trader',
-            'Schuh',
-            'Timberland',
-            'Debenhams',
-            'M and M Direct',
-            'Jimmy Choo',
-            'River Island',
-            'Barratts',
-            'Liberty',
-            'www.shoes.co.uk'
-          ]
-        },
-        {
-          label: 'US Stores',
-          stores: [
-            "Macy's",
-            "Sears",
-            "Nordstrom",
-            "Bloomingdale's",
-            'www.shoes.com',
-            'AMAZON.COM',
-            'Target',
-            'Walmart',
-            'Adidas USA',
-            'Nike USA',
-            'Zappos',
-            'Overstock',
-            'Ralph Lauren',
-            'Talbots',
-            '6PM.COM',
-            'NINE WEST',
-            'Saks Fifth Avenue'
-          ]
-        }
-      ]
-    },
-    {
-      name: 'Clothing (Men, Women, Sport)',
-      segments: [
-        {
-          label: 'UK Stores',
-          stores: [
-            'Asos',
-            'Hackett',
-            'Harrods',
-            'Harvey Nichols',
-            'House of Fraser',
-            'Burberry',
-            'Debenhams',
-            'Burton',
-            'Tommy Hilfiger',
-            'Moss Bros',
-            'Topman',
-            'River Island',
-            'Peacocks',
-            'Gap',
-            'Sports Direct',
-            'JD Sports',
-            'JJB Sports',
-            'Nike (UK)',
-            'Adidas (UK)'
-          ]
-        },
-        {
-          label: 'US Stores',
-          stores: [
-            "Macy's",
-            "Sears",
-            "Bloomingdale's",
-            "Nordstrom",
-            'JC Penny',
-            'Ralph Lauren',
-            'AMAZON.COM',
-            'Walmart',
-            'Target',
-            'Abercrombie & Fitch',
-            'Old Navy',
-            'Banana Republic',
-            'PUMA USA',
-            'Express',
-            'Hollister Co',
-            "Levi's"
-          ]
-        }
-      ]
-    },
-    {
-      name: 'Accessories (Men & Women)',
-      segments: [
-        {
-          label: 'UK Stores',
-          stores: [
-            'Harrods',
-            'Sunglasses Shop',
-            'Ernest Jones',
-            'Goldsmiths',
-            'H.Samuel',
-            'Swarovski',
-            'Tie Rack',
-            'The Watch Hut',
-            'Accessorize',
-            'Debenhams',
-            'Matalan',
-            'Dorothy Perkins',
-            'Marks and Spencer'
-          ]
-        },
-        {
-          label: 'US Stores',
-          stores: [
-            'Tiffany & Co',
-            'Saks Fifth Avenue',
-            "Macy's",
-            'AMAZON.COM',
-            'Sunglasses Hut',
-            'Neiman Marcus',
-            'Avon',
-            'Ardyss',
-            'Drug store',
-            'Swatch',
-            'DKNY',
-            'Human Hair etc',
-            'Arewa Hair Extensions'
-          ]
-        }
-      ]
-    },
-    {
-      name: 'Jewellery',
-      segments: [
-        {
-          label: 'UK Stores',
-          stores: ['Goldsmiths', 'H.Samuel', 'Ernest Jones', 'Swarovski', 'Swag']
-        },
-        {
-          label: 'US Stores',
-          stores: ['Tiffany & Co']
-        }
-      ]
-    },
-    {
-      name: 'Home & Kitchen / Appliances',
-      segments: [
-        {
-          label: 'UK Stores',
-          stores: ['Argos', 'John Lewis', 'Ikea', 'Comet', 'Currys', 'Amazon', 'Asda Direct', 'Tesco']
-        }
-      ]
-    },
-    {
-      name: 'Computers & Accessories',
-      segments: [
-        {
-          label: 'UK Stores',
-          stores: ['Amazon', 'Comet', 'HP UK', 'PC World UK']
-        }
-      ]
-    },
-    {
-      name: 'Babies & Kids / Boys & Girls',
-      segments: [
-        {
-          label: 'UK Stores',
-          stores: ['Matalan', 'NEXT', 'Peacocks', 'Asda George', 'Tesco Clothing', 'Toys R Us', 'Marks and Spencer']
-        }
-      ]
-    },
-    {
-      name: 'Luxury Stores',
-      segments: [
-        {
-          label: 'UK Stores',
-          stores: [
-            'Louis Vuitton',
-            'Gucci',
-            'Harrods',
-            'John Lewis',
-            'House of Fraser',
-            'Marks and Spencer',
-            'Burberry',
-            'Harvey Nichols',
-            'Liberty',
-            'The White Company'
-          ]
-        }
-      ]
-    }
-    ],
-    []
-  );
+  const partnerCategories = partnerStoreCategories;
 
   const filteredPartnerCategories = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -292,7 +89,8 @@ export default function StoresPage() {
     const normalized = store.trim().toLowerCase();
     let domain = normalized;
     if (!normalized.includes('.')) {
-      domain = `${normalized.replace(/[^a-z0-9]/g, '')}.com`;
+      const override = storeDomainOverrides[normalized];
+      domain = override ?? `${normalized.replace(/[^a-z0-9]/g, '')}.com`;
     }
     if (domain.startsWith('www.')) {
       domain = domain.slice(4);
