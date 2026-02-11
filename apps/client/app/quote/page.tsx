@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CreditCard } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
@@ -8,18 +9,21 @@ import { Separator } from '@/app/components/ui/separator';
 
 export default function ClientQuotePage() {
   const router = useRouter();
+  const [rates, setRates] = useState<{ USD?: number; NGN?: number }>({});
 
   const breakdown = {
-    itemPrice: 99.99,
-    serviceFee: 15.0,
-    ukDelivery: 0.0,
-    internationalShipping: 45.0,
-    dutiesBuffer: 25.0,
-    fxConversion: 8.5,
-    paymentFee: 4.2,
     total: 197.69,
     currency: 'GBP'
   };
+
+  useEffect(() => {
+    fetch('/api/proxy/v1/fx?base=GBP&symbols=USD,NGN')
+      .then((res) => res.json())
+      .then((payload) => {
+        if (payload?.ok) setRates(payload.data.rates ?? {});
+      })
+      .catch(() => undefined);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background py-12">
@@ -34,42 +38,15 @@ export default function ClientQuotePage() {
             <CardTitle>Quote Summary</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Item Price</span>
-                <span className="font-medium">{breakdown.currency} {breakdown.itemPrice.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Service Fee</span>
-                <span className="font-medium">{breakdown.currency} {breakdown.serviceFee.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">UK Delivery</span>
-                <span className="font-medium">{breakdown.ukDelivery === 0 ? 'Free' : breakdown.ukDelivery.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">International Shipping</span>
-                <span className="font-medium">{breakdown.currency} {breakdown.internationalShipping.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Duties Buffer</span>
-                <span className="font-medium">{breakdown.currency} {breakdown.dutiesBuffer.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">FX Conversion</span>
-                <span className="font-medium">{breakdown.currency} {breakdown.fxConversion.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Payment Fee</span>
-                <span className="font-medium">{breakdown.currency} {breakdown.paymentFee.toFixed(2)}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between text-lg">
-                <span className="font-semibold">Total</span>
-                <span className="font-bold">{breakdown.currency} {breakdown.total.toFixed(2)}</span>
-              </div>
+            <div className="flex justify-between text-lg">
+              <span className="font-semibold">Total</span>
+              <span className="font-bold">{breakdown.currency} {breakdown.total.toFixed(2)}</span>
             </div>
-
+            <Separator />
+            <div className="text-sm text-muted-foreground space-y-1">
+              <div>USD: {rates.USD ? (breakdown.total * rates.USD).toFixed(2) : '—'}</div>
+              <div>NGN: {rates.NGN ? (breakdown.total * rates.NGN).toFixed(2) : '—'}</div>
+            </div>
             <Button className="w-full gap-2" size="lg" onClick={() => router.push('/pay')}>
               <CreditCard className="h-4 w-4" />
               Proceed to Payment
@@ -80,4 +57,3 @@ export default function ClientQuotePage() {
     </div>
   );
 }
-

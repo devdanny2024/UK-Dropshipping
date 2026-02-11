@@ -25,6 +25,21 @@ export const orderSchema = z.object({
   paymentRef: z.string()
 });
 
+export const adapterUpdateSchema = z.object({
+  enabled: z.boolean(),
+  notes: z.string().max(300).optional()
+});
+
+export const paymentInitSchema = z.object({
+  orderId: z.string(),
+  txRef: z.string().optional(),
+  redirectPath: z.string().optional()
+});
+
+export const platformFeeSchema = z.object({
+  feePercent: z.number().min(0).max(100)
+});
+
 export const updateOrderStatusSchema = z.object({
   status: z.enum([
     'PLACED',

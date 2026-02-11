@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Activity, Power } from 'lucide-react';
+import { Activity, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
@@ -12,7 +12,10 @@ type Adapter = {
   id: string;
   name: string;
   domain: string;
-  status: 'online' | 'offline';
+  enabled: boolean;
+  status: 'UNKNOWN' | 'ONLINE' | 'OFFLINE';
+  lastCheckAt?: string | null;
+  notes?: string | null;
 };
 
 const apiBase = '/api/proxy';
@@ -26,7 +29,7 @@ export default function AdminAdaptersPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${apiBase}/adapters`, { credentials: 'include' });
+      const res = await fetch(`${apiBase}/admin/adapters`, { credentials: 'include' });
       const payload = await res.json();
       if (!res.ok || !payload.ok) throw new Error(payload?.error?.message ?? 'Failed to load adapters');
       setAdapters(payload.data.adapters ?? []);
@@ -35,6 +38,34 @@ export default function AdminAdaptersPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleAdapter = async (adapter: Adapter, enabled: boolean) => {
+    const res = await fetch(`${apiBase}/admin/adapters/${adapter.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ enabled })
+    });
+    const payload = await res.json();
+    if (!res.ok || !payload.ok) {
+      setError(payload?.error?.message ?? 'Failed to update adapter');
+      return;
+    }
+    setAdapters((prev) => prev.map((a) => (a.id === adapter.id ? payload.data.adapter : a)));
+  };
+
+  const checkAdapter = async (adapter: Adapter) => {
+    const res = await fetch(`${apiBase}/admin/adapters/${adapter.id}/check`, {
+      method: 'POST',
+      credentials: 'include'
+    });
+    const payload = await res.json();
+    if (!res.ok || !payload.ok) {
+      setError(payload?.error?.message ?? 'Health check failed');
+      return;
+    }
+    setAdapters((prev) => prev.map((a) => (a.id === adapter.id ? payload.data.adapter : a)));
   };
 
   useEffect(() => {
@@ -49,17 +80,15 @@ export default function AdminAdaptersPage() {
           <p className="text-muted-foreground mt-2">Monitor and manage automated store integrations</p>
         </div>
         <Button variant="outline" className="gap-2" onClick={() => void load()} disabled={loading}>
-          <Power className="h-4 w-4" />
-          {loading ? 'Checking…' : 'Run Health Check'}
+          <RefreshCw className="h-4 w-4" />
+          {loading ? 'Loading…' : 'Refresh'}
         </Button>
       </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Adapter Status</CardTitle>
-          <Badge variant="secondary">
-            {loading ? 'Loading…' : `${adapters.length} adapters`}
-          </Badge>
+          <Badge variant="secondary">{loading ? 'Loading…' : `${adapters.length} adapters`}</Badge>
         </CardHeader>
         <CardContent>
           {error && <p className="text-sm text-destructive mb-4">{error}</p>}
@@ -70,36 +99,35 @@ export default function AdminAdaptersPage() {
                   <TableHead>Store</TableHead>
                   <TableHead>Domain</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Toggle</TableHead>
+                  <TableHead>Enabled</TableHead>
+                  <TableHead>Last Check</TableHead>
+                  <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {adapters.map((adapter) => (
                   <TableRow key={adapter.id}>
-                    <TableCell>
-                      <div className="font-medium">{adapter.name}</div>
-                    </TableCell>
+                    <TableCell className="font-medium">{adapter.name}</TableCell>
                     <TableCell>{adapter.domain}</TableCell>
                     <TableCell>
-                      <Badge variant={adapter.status === 'online' ? 'default' : 'secondary'}>
+                      <Badge variant={adapter.status === 'ONLINE' ? 'default' : 'secondary'}>
                         <span className="inline-flex items-center gap-2">
                           <Activity className="h-4 w-4" />
-                          {adapter.status === 'online' ? 'Online' : 'Offline'}
+                          {adapter.status}
                         </span>
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Switch defaultChecked={adapter.status === 'online'} disabled />
+                      <Switch checked={adapter.enabled} onCheckedChange={(value) => void toggleAdapter(adapter, value)} />
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {adapter.lastCheckAt ? new Date(adapter.lastCheckAt).toLocaleString() : '—'}
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="outline" size="sm" onClick={() => void checkAdapter(adapter)}>Check</Button>
                     </TableCell>
                   </TableRow>
                 ))}
-                {!loading && adapters.length === 0 && !error && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-6">
-                      No adapters configured yet.
-                    </TableCell>
-                  </TableRow>
-                )}
               </TableBody>
             </Table>
           </div>
@@ -108,4 +136,3 @@ export default function AdminAdaptersPage() {
     </div>
   );
 }
-

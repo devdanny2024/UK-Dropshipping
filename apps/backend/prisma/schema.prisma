@@ -29,6 +29,12 @@ enum PurchaseAttemptStatus {
   SUCCESS
 }
 
+enum AdapterHealthStatus {
+  UNKNOWN
+  ONLINE
+  OFFLINE
+}
+
 enum ShipmentStatus {
   CREATED
   IN_TRANSIT
@@ -145,6 +151,10 @@ model Payment {
   currency        String
   status          PaymentStatus
   idempotencyKey  String        @unique
+  gatewayRef      String?
+  gatewayTxId     String?
+  paidAt          DateTime?
+  rawPayload      Json?
   createdAt       DateTime      @default(now())
   order           Order?        @relation(fields: [orderId], references: [id])
 }
@@ -248,4 +258,27 @@ model Product {
   @@index([categoryId])
   @@index([isFeatured])
   @@index([isActive])
+}
+
+model AdapterState {
+  id          String              @id
+  name        String
+  domain      String              @unique
+  region      String
+  enabled     Boolean             @default(true)
+  status      AdapterHealthStatus @default(UNKNOWN)
+  lastCheckAt DateTime?
+  notes       String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([enabled])
+  @@index([status])
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }

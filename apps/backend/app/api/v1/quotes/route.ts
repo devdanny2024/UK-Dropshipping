@@ -4,6 +4,7 @@ import { parseBody } from '../../../../lib/parse';
 import { quoteSchema } from '../../../../lib/schemas';
 import { prisma } from '../../../../lib/prisma';
 import { getClientSession } from '../../../../lib/auth';
+import { getPlatformFeePercent } from '../../../../lib/settings';
 
 export async function POST(request: NextRequest) {
   const session = await getClientSession(request);
@@ -37,7 +38,9 @@ export async function POST(request: NextRequest) {
   const subtotal = snapshot.price * data.qty;
   const shipping = 9.5;
   const tax = subtotal * 0.06;
-  const total = subtotal + shipping + tax;
+  const platformFeePercent = await getPlatformFeePercent();
+  const platformFee = subtotal * (platformFeePercent / 100);
+  const total = subtotal + shipping + tax + platformFee;
 
   const quote = await prisma.quote.create({
     data: {
@@ -63,6 +66,8 @@ export async function POST(request: NextRequest) {
     subtotal: quote.subtotal,
     shipping: quote.shipping,
     tax: quote.tax,
+    platformFee,
+    platformFeePercent,
     total: quote.total,
     currency: quote.currency,
     createdAt: quote.createdAt.toISOString()

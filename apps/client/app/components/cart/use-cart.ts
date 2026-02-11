@@ -17,11 +17,13 @@ export type CartItem = {
 
 type CartState = {
   items: CartItem[];
+  currency: 'GBP';
   addItem: (item: CartItem) => void;
   removeItem: (slugOrId: string) => void;
   updateQuantity: (slugOrId: string, quantity: number) => void;
   clear: () => void;
   count: () => number;
+  subtotal: () => number;
 };
 
 function matchId(item: CartItem, slugOrId: string) {
@@ -32,6 +34,7 @@ export const useCart = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+      currency: 'GBP',
       addItem: (item) =>
         set((state) => {
           const existing = state.items.find((existingItem) => matchId(existingItem, item.productId ?? item.slug ?? item.externalUrl ?? ''));
@@ -57,7 +60,8 @@ export const useCart = create<CartState>()(
           )
         })),
       clear: () => set({ items: [] }),
-      count: () => get().items.reduce((sum, item) => sum + item.quantity, 0)
+      count: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
+      subtotal: () => get().items.reduce((sum, item) => sum + (item.priceGBP ?? 0) * item.quantity, 0)
     }),
     { name: 'uk2me-cart' }
   )

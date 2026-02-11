@@ -12,6 +12,7 @@ import {
   Settings,
   Package,
   Shield,
+  Percent
 } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { ScrollArea } from '@/app/components/ui/scroll-area';
@@ -24,6 +25,7 @@ const menuItems = [
   { href: '/admin/purchase-queue', label: 'Purchase Queue', icon: Clock },
   { href: '/admin/shipments', label: 'Shipments', icon: Truck },
   { href: '/admin/adapters', label: 'Store Adapters', icon: Store },
+  { href: '/admin/finance', label: 'Finance', icon: Percent },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/roles', label: 'Roles', icon: Shield },
   { href: '/admin/settings', label: 'Settings', icon: Settings }

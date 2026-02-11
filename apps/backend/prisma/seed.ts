@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { slugify } from '../lib/slug';
+import { STORE_ADAPTERS } from '../lib/store-adapters';
 
 const prisma = new PrismaClient();
 
@@ -55,10 +56,39 @@ function pick<T>(items: T[]) {
   return items[randomInt(0, items.length - 1)];
 }
 
+async function seedAdaptersAndSettings() {
+  for (const adapter of STORE_ADAPTERS) {
+    await prisma.adapterState.upsert({
+      where: { id: adapter.id },
+      update: {
+        name: adapter.name,
+        domain: adapter.domain,
+        region: adapter.region
+      },
+      create: {
+        id: adapter.id,
+        name: adapter.name,
+        domain: adapter.domain,
+        region: adapter.region,
+        enabled: true,
+        status: 'UNKNOWN'
+      }
+    });
+  }
+
+  await prisma.appSetting.upsert({
+    where: { key: 'platform_fee_percent' },
+    update: {},
+    create: { key: 'platform_fee_percent', value: '5' }
+  });
+}
+
 async function main() {
+  await seedAdaptersAndSettings();
+
   const existingCategories = await prisma.category.count();
   if (existingCategories > 0) {
-    console.log('Seed skipped: categories already exist.');
+    console.log('Seed skipped for catalog: categories already exist.');
     return;
   }
 

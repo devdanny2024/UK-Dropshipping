@@ -4,12 +4,18 @@ import { parseBody } from '../../../../lib/parse';
 import { resolveProductSchema } from '../../../../lib/schemas';
 import { prisma } from '../../../../lib/prisma';
 import { resolveProductFromUrl } from '../../../../lib/adapters';
+import { findAdapterByUrl } from '../../../../lib/adapters-state';
 
 export async function POST(request: NextRequest) {
   const { data, error } = await parseBody(request, resolveProductSchema);
   if (error) return error;
 
   const url = data.url;
+
+  const adapter = await findAdapterByUrl(url);
+  if (adapter && !adapter.enabled) {
+    return fail('ADAPTER_DISABLED', `Adapter for ${adapter.domain} is disabled`, 403);
+  }
 
   // Resolve product details synchronously so callers (admin/client) get
   // a usable snapshot immediately, without depending on the background worker.

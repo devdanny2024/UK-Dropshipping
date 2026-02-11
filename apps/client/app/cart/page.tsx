@@ -10,7 +10,7 @@ import { Input } from '@/app/components/ui/input';
 import { Separator } from '@/app/components/ui/separator';
 
 export default function CartPage() {
-  const { items, removeItem, updateQuantity, clear } = useCart();
+  const { items, currency, removeItem, updateQuantity, clear, subtotal } = useCart();
   const [notes, setNotes] = useState('');
   const [customItems, setCustomItems] = useState<
     { name: string; url: string; size?: string; color?: string; quantity: number }[]
@@ -19,7 +19,20 @@ export default function CartPage() {
   const router = useRouter();
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/proxy';
 
-  const total = items.reduce((sum, item) => sum + (item.priceGBP ?? 0) * item.quantity, 0);
+  const total = subtotal();
+
+  const startCheckout = () => {
+    const intent = {
+      currency,
+      subtotal: total,
+      items,
+      customItems,
+      notes,
+      createdAt: new Date().toISOString()
+    };
+    localStorage.setItem('uk2me-checkout-intent', JSON.stringify(intent));
+    router.push('/pay');
+  };
 
   const submitQuote = async () => {
     if (items.length === 0) return;
@@ -36,7 +49,6 @@ export default function CartPage() {
         alert(payload?.error?.message ?? 'Failed to submit quote request');
         return;
       }
-      clear();
       router.push('/quote');
     } finally {
       setLoading(false);
@@ -62,10 +74,7 @@ export default function CartPage() {
                     </div>
                     <div className="flex-1">
                       <div className="font-medium">{item.name}</div>
-                      {item.categoryName && <div className="text-xs text-muted-foreground">{item.categoryName}</div>}
-                      <div className="text-sm text-muted-foreground">
-                        {item.priceGBP ? `GBP ${item.priceGBP.toFixed(2)}` : 'Request quote'}
-                      </div>
+                      <div className="text-sm text-muted-foreground">{currency} {(item.priceGBP ?? 0).toFixed(2)}</div>
                     </div>
                     <div className="flex items-center gap-3">
                       <Input
@@ -82,38 +91,15 @@ export default function CartPage() {
                   </div>
                 ))}
                 <Separator />
-              <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Estimated total</span>
-                  <span className="font-semibold">GBP {total.toFixed(2)}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-semibold">{currency} {total.toFixed(2)}</span>
                 </div>
-                <Separator />
-                <div className="space-y-3">
-                  <div className="text-sm font-semibold">Custom link items</div>
-                  <CustomItemForm
-                    onAdd={(item) => setCustomItems((prev) => [...prev, item])}
-                  />
-                  {customItems.length > 0 && (
-                    <div className="space-y-2">
-                      {customItems.map((item, index) => (
-                        <div key={`${item.url}-${index}`} className="flex items-center justify-between rounded-md border border-border p-3 text-sm">
-                          <div>
-                            <div className="font-medium">{item.name}</div>
-                            <div className="text-xs text-muted-foreground">{item.url}</div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              setCustomItems((prev) => prev.filter((_, idx) => idx !== index))
-                            }
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <Button className="w-full" variant="outline" onClick={startCheckout}>Proceed to checkout</Button>
+                <Button className="w-full" onClick={submitQuote} disabled={loading}>
+                  {loading ? 'Submitting...' : 'Request a Quote'}
+                </Button>
+                <Button variant="ghost" className="w-full" onClick={clear}>Clear cart</Button>
                 <div className="space-y-2">
                   <label className="text-sm text-muted-foreground">Notes (optional)</label>
                   <textarea
@@ -122,51 +108,11 @@ export default function CartPage() {
                     onChange={(event) => setNotes(event.target.value)}
                   />
                 </div>
-                <Button className="w-full" onClick={submitQuote} disabled={loading}>
-                  {loading ? 'Submitting...' : 'Request a Quote'}
-                </Button>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
-}
-
-function CustomItemForm({ onAdd }: { onAdd: (item: { name: string; url: string; size?: string; color?: string; quantity: number }) => void }) {
-  const [name, setName] = useState('');
-  const [url, setUrl] = useState('');
-  const [size, setSize] = useState('');
-  const [color, setColor] = useState('');
-  const [quantity, setQuantity] = useState(1);
-
-  const handleAdd = () => {
-    if (!name || !url) return;
-    onAdd({ name, url, size: size || undefined, color: color || undefined, quantity });
-    setName('');
-    setUrl('');
-    setSize('');
-    setColor('');
-    setQuantity(1);
-  };
-
-  return (
-    <div className="grid gap-2 md:grid-cols-2">
-      <Input placeholder="Item name" value={name} onChange={(e) => setName(e.target.value)} />
-      <Input placeholder="Product URL" value={url} onChange={(e) => setUrl(e.target.value)} />
-      <Input placeholder="Size (optional)" value={size} onChange={(e) => setSize(e.target.value)} />
-      <Input placeholder="Color (optional)" value={color} onChange={(e) => setColor(e.target.value)} />
-      <Input
-        type="number"
-        min={1}
-        placeholder="Qty"
-        value={quantity}
-        onChange={(e) => setQuantity(Number(e.target.value))}
-      />
-      <Button type="button" variant="outline" onClick={handleAdd}>
-        Add custom item
-      </Button>
     </div>
   );
 }

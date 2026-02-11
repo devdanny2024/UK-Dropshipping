@@ -1,17 +1,20 @@
 import type { NextRequest } from 'next/server';
 import { ok } from '../../../lib/response';
-import { STORE_ADAPTERS } from '../../../lib/store-adapters';
+import { ensureAdapterStatesSeeded } from '../../../lib/adapters-state';
+import { prisma } from '../../../lib/prisma';
 
 export async function GET(_request: NextRequest) {
-  // For now we just return static metadata for configured adapters.
-  // In the future this can be extended with real health checks per store.
+  await ensureAdapterStatesSeeded();
+  const adapters = await prisma.adapterState.findMany({ orderBy: [{ name: 'asc' }] });
+
   return ok({
-    adapters: STORE_ADAPTERS.map((store) => ({
-      id: store.id,
-      name: store.name,
-      domain: store.domain,
-      status: 'online'
+    adapters: adapters.map((adapter) => ({
+      id: adapter.id,
+      name: adapter.name,
+      domain: adapter.domain,
+      enabled: adapter.enabled,
+      status: adapter.status.toLowerCase(),
+      lastCheckAt: adapter.lastCheckAt?.toISOString() ?? null
     }))
   });
 }
-
