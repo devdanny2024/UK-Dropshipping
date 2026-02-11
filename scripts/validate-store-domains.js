@@ -16,12 +16,13 @@ function slugify(name) {
 
 function inferDomain(name, region) {
   const normalized = normalizeName(name);
-  if (normalized.includes('.')) {
-    return normalized.replace(/^www\./, '');
-  }
 
   const override = DOMAIN_OVERRIDES[normalized];
   if (override) return override;
+
+  if (normalized.includes('.')) {
+    return normalized.replace(/^www\./, '');
+  }
 
   const tld = region === 'US' ? 'com' : 'co.uk';
   return `${slugify(name)}.${tld}`;

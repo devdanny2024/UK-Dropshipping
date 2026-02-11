@@ -6,6 +6,8 @@ out
 !.env.example
 .DS_Store
 coverage
+*.tsbuildinfo
+adapter-verification-report.json
 infra/terraform/terraform.tfvars
 infra/terraform/.terraform/
 infra/terraform/terraform.tfstate
