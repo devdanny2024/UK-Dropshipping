@@ -1,21 +1,32 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, CreditCard } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 
-export default function ClientPaymentPage() {
+function ClientPaymentContent() {
   const router = useRouter();
   const params = useSearchParams();
   const [orderId, setOrderId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [quoteTotal, setQuoteTotal] = useState<string | null>(null);
 
   useEffect(() => {
     setOrderId(params.get('orderId') ?? '');
+
+    const raw = localStorage.getItem('uk2me-quote-summary');
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      const total = parsed?.breakdown?.total;
+      if (typeof total === 'number') setQuoteTotal(`GBP ${total.toFixed(2)}`);
+    } catch {
+      // noop
+    }
   }, [params]);
 
   const startPayment = async () => {
@@ -30,7 +41,7 @@ export default function ClientPaymentPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ orderId })
+        body: JSON.stringify({ orderId, redirectPath: '/pay/callback' })
       });
       const payload = await res.json();
       if (!res.ok || !payload.ok) throw new Error(payload?.error?.message ?? 'Failed to initialize payment');
@@ -56,6 +67,7 @@ export default function ClientPaymentPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <Input placeholder="Order ID" value={orderId} onChange={(e) => setOrderId(e.target.value)} />
+            {quoteTotal ? <p className="text-sm text-muted-foreground">Latest quote estimate: {quoteTotal}</p> : null}
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button className="w-full gap-2" size="lg" onClick={startPayment} disabled={loading}>
               <CreditCard className="h-4 w-4" />
@@ -65,5 +77,13 @@ export default function ClientPaymentPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function ClientPaymentPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background py-12" />}>
+      <ClientPaymentContent />
+    </Suspense>
   );
 }

@@ -1,11 +1,12 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 
-export default function PaymentCallbackPage() {
+function PaymentCallbackContent() {
   const params = useSearchParams();
   const status = params.get('status') ?? 'pending';
   const txRef = params.get('tx_ref') ?? '';
@@ -24,5 +25,13 @@ export default function PaymentCallbackPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function PaymentCallbackPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background py-12" />}>
+      <PaymentCallbackContent />
+    </Suspense>
   );
 }
