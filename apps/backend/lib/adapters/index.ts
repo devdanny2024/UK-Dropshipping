@@ -35,17 +35,40 @@ async function fetchWithTimeout(url: string, init?: RequestInit) {
 
 export async function resolveProductFromUrl(url: string): Promise<ResolvedProduct> {
   const response = await fetchWithTimeout(url, {
+    redirect: 'follow',
     headers: {
+      // Many UK retail sites block non-browser UAs. Use a realistic desktop UA.
       'User-Agent':
-        'Mozilla/5.0 (compatible; UK2MEProductResolver/1.0; +https://uk2meonline.com)'
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      Accept:
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      'Accept-Language': 'en-GB,en;q=0.9',
+      'Cache-Control': 'no-cache',
+      Pragma: 'no-cache'
     }
   });
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch product URL (status ${response.status})`);
-  }
+  const html = await response.text().catch(() => '');
 
-  const html = await response.text();
+  // If the origin blocks our fetch (403/429/etc), avoid hard-failing the entire
+  // "paste product link" flow. We'll still try to parse anything returned,
+  // otherwise we fall back to a minimal snapshot.
+  if (!response.ok && !html) {
+    return {
+      title: new URL(url).pathname.split('/').filter(Boolean).slice(-1)[0] || url,
+      imageUrl: null,
+      price: null,
+      currency: 'GBP',
+      raw: {
+        source: 'html',
+        url,
+        store: null,
+        generic: {
+          error: `Failed to fetch product URL (status ${response.status})`
+        }
+      }
+    };
+  }
   const dom = new JSDOM(html);
   const { document } = dom.window;
 

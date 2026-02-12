@@ -2,7 +2,26 @@ import { prisma } from './prisma';
 import { STORE_ADAPTERS } from './store-adapters';
 
 export function normalizeDomain(input: string) {
-  return input.toLowerCase().replace(/^www\./, '').trim();
+  return input.toLowerCase().trim().replace(/^www\./, '');
+}
+
+function getDomainCandidates(hostname: string) {
+  const normalized = normalizeDomain(hostname);
+  const parts = normalized.split('.').filter(Boolean);
+
+  const candidates = new Set<string>();
+  candidates.add(normalized);
+
+  // Common mobile subdomain.
+  candidates.add(normalized.replace(/^m\./, ''));
+
+  // Also try parent domains so locale subdomains like uk.louisvuitton.com match louisvuitton.com.
+  if (parts.length >= 3) {
+    candidates.add(parts.slice(-2).join('.'));
+    candidates.add(parts.slice(-3).join('.'));
+  }
+
+  return Array.from(candidates).filter(Boolean);
 }
 
 export async function ensureAdapterStatesSeeded() {
@@ -27,14 +46,12 @@ export async function ensureAdapterStatesSeeded() {
 }
 
 export async function findAdapterByUrl(url: string) {
-  const hostname = normalizeDomain(new URL(url).hostname);
+  const hostname = new URL(url).hostname;
+  const candidates = getDomainCandidates(hostname);
+
   return prisma.adapterState.findFirst({
     where: {
-      OR: [
-        { domain: hostname },
-        { domain: `www.${hostname}` },
-        { domain: hostname.replace(/^www\./, '') }
-      ]
+      OR: candidates.map((domain) => ({ domain }))
     }
   });
 }

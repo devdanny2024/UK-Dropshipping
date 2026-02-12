@@ -36,12 +36,14 @@ function slugify(name: string) {
 
 function inferDomain(name: string, region: StoreRegion) {
   const normalized = normalizeName(name);
+
+  // Always honor explicit overrides first (important for dotted names like "H.Samuel").
+  const override = DOMAIN_OVERRIDES[normalized];
+  if (override) return override;
+
   if (normalized.includes('.')) {
     return normalized.replace(/^www\./, '');
   }
-
-  const override = DOMAIN_OVERRIDES[normalized];
-  if (override) return override;
 
   const tld = region === 'UK' ? 'co.uk' : 'com';
   return `${slugify(name)}.${tld}`;
