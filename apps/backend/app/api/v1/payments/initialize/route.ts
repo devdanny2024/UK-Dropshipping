@@ -1,10 +1,10 @@
 import type { NextRequest } from 'next/server';
-import { ok, fail } from '../../../../../../lib/response';
-import { parseBody } from '../../../../../../lib/parse';
-import { paymentInitSchema } from '../../../../../../lib/schemas';
-import { getClientSession } from '../../../../../../lib/auth';
-import { prisma } from '../../../../../../lib/prisma';
-import { initializeFlutterwavePayment, newTxRef } from '../../../../../../lib/flutterwave';
+import { ok, fail } from '../../../../../lib/response';
+import { parseBody } from '../../../../../lib/parse';
+import { paymentInitSchema } from '../../../../../lib/schemas';
+import { getClientSession } from '../../../../../lib/auth';
+import { prisma } from '../../../../../lib/prisma';
+import { initializeFlutterwavePayment, newTxRef } from '../../../../../lib/flutterwave';
 
 export async function POST(request: NextRequest) {
   const session = await getClientSession(request);

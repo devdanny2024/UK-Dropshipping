@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server';
-import { ok, fail } from '../../../../../lib/response';
-import { getFxRates } from '../../../../../lib/fx';
+import { ok, fail } from '../../../../lib/response';
+import { getFxRates } from '../../../../lib/fx';
 
 export async function GET(request: NextRequest) {
   const base = (request.nextUrl.searchParams.get('base') ?? 'GBP').toUpperCase();

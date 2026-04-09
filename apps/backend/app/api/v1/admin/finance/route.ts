@@ -1,9 +1,9 @@
 import type { NextRequest } from 'next/server';
-import { ok } from '../../../../../../lib/response';
-import { parseBody } from '../../../../../../lib/parse';
-import { platformFeeSchema } from '../../../../../../lib/schemas';
-import { requireAdmin } from '../../../../../../lib/auth';
-import { getPlatformFeePercent, setPlatformFeePercent } from '../../../../../../lib/settings';
+import { ok } from '../../../../../lib/response';
+import { parseBody } from '../../../../../lib/parse';
+import { platformFeeSchema } from '../../../../../lib/schemas';
+import { requireAdmin } from '../../../../../lib/auth';
+import { getPlatformFeePercent, setPlatformFeePercent } from '../../../../../lib/settings';
 
 export async function GET(request: NextRequest) {
   const authError = requireAdmin(request);
