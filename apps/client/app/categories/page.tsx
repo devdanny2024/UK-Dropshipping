@@ -1,12 +1,9 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
-
-const backendBase = process.env.BACKEND_HTTP_BASE_URL ?? 'http://localhost:4000';
+import { fetchJsonSafe } from '@/app/lib/server-api';
 
 async function getCategories() {
-  const res = await fetch(`${backendBase}/api/categories`, { cache: 'no-store' });
-  if (!res.ok) return [];
-  const payload = await res.json();
+  const payload = await fetchJsonSafe<any>('/api/categories');
   return payload?.data?.categories ?? [];
 }
 

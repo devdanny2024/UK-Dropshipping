@@ -1,13 +1,10 @@
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { ProductActions } from '@/app/components/ProductActions';
-
-const backendBase = process.env.BACKEND_HTTP_BASE_URL ?? 'http://localhost:4000';
+import { fetchJsonSafe } from '@/app/lib/server-api';
 
 async function getProduct(slug: string) {
-  const res = await fetch(`${backendBase}/api/products/${slug}`, { cache: 'no-store' });
-  if (!res.ok) return null;
-  const payload = await res.json();
+  const payload = await fetchJsonSafe<any>(`/api/products/${slug}`);
   return payload?.data?.product ?? null;
 }
 

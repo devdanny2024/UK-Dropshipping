@@ -4,13 +4,10 @@ import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { ProductCard } from '@/app/components/ProductCard';
-
-const backendBase = process.env.BACKEND_HTTP_BASE_URL ?? 'http://localhost:4000';
+import { fetchJsonSafe } from '@/app/lib/server-api';
 
 async function getFeatured() {
-  const res = await fetch(`${backendBase}/api/products/featured`, { cache: 'no-store' });
-  if (!res.ok) return [];
-  const payload = await res.json();
+  const payload = await fetchJsonSafe<any>('/api/products/featured');
   return payload?.data?.products ?? [];
 }
 

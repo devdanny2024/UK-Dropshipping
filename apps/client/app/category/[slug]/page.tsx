@@ -1,12 +1,9 @@
 import { notFound } from 'next/navigation';
 import { ProductCard } from '@/app/components/ProductCard';
-
-const backendBase = process.env.BACKEND_HTTP_BASE_URL ?? 'http://localhost:4000';
+import { fetchJsonSafe } from '@/app/lib/server-api';
 
 async function getCategory(slug: string) {
-  const res = await fetch(`${backendBase}/api/categories/${slug}`, { cache: 'no-store' });
-  if (!res.ok) return null;
-  const payload = await res.json();
+  const payload = await fetchJsonSafe<any>(`/api/categories/${slug}`);
   return payload?.data?.category ?? null;
 }
 
