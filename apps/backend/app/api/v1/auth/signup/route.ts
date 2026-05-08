@@ -4,8 +4,8 @@ import { parseBody } from '../../../../../lib/parse';
 import { signupSchema } from '../../../../../lib/schemas';
 import { prisma } from '../../../../../lib/prisma';
 import { createSession, generateToken, getClientCookieName, hashPassword } from '../../../../../lib/auth';
-import { sendMail } from ‘../../../../../lib/mailer’;
-import { welcomeVerificationEmail } from ‘../../../../../lib/emails’;
+import { sendMail } from '../../../../../lib/mailer';
+import { welcomeVerificationEmail } from '../../../../../lib/emails';
 
 export async function POST(request: NextRequest) {
   const { data, error } = await parseBody(request, signupSchema);
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (existing) {
-    return fail(‘EMAIL_EXISTS’, ‘Email is already registered’, 409);
+    return fail('EMAIL_EXISTS', 'Email is already registered', 409);
   }
 
   const user = await prisma.user.create({
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
   });
 
-  const mail = welcomeVerificationEmail(user.name ?? ‘’, verificationToken);
+  const mail = welcomeVerificationEmail(user.name ?? '', verificationToken);
   await sendMail({ to: user.email, ...mail });
 
   const session = await createSession(user.id);
