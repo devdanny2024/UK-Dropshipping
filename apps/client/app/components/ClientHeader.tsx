@@ -28,7 +28,7 @@ export function ClientHeader() {
       .then((res) => res.json())
       .then((payload) => setIsAuthed(Boolean(payload?.ok)))
       .catch(() => setIsAuthed(false));
-  }, [apiBase]);
+  }, [apiBase, pathname]);
 
   const handleLogout = async () => {
     try {
