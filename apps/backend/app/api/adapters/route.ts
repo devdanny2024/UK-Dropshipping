@@ -3,6 +3,8 @@ import { ok } from '../../../lib/response';
 import { ensureAdapterStatesSeeded } from '../../../lib/adapters-state';
 import { prisma } from '../../../lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(_request: NextRequest) {
   await ensureAdapterStatesSeeded();
   const adapters = await prisma.adapterState.findMany({ orderBy: [{ name: 'asc' }] });

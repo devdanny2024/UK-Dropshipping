@@ -1,0 +1,557 @@
+{
+  "generatedAt": "2026-02-12T11:02:03.350Z",
+  "totalStores": 146,
+  "uniqueDomains": 110,
+  "stores": [
+    {
+      "name": "6PM.COM",
+      "region": "US",
+      "domain": "6pm.com"
+    },
+    {
+      "name": "Abercrombie & Fitch",
+      "region": "US",
+      "domain": "abercrombiefitch.com"
+    },
+    {
+      "name": "Accessorize",
+      "region": "UK",
+      "domain": "accessorize.com"
+    },
+    {
+      "name": "Adidas (UK)",
+      "region": "UK",
+      "domain": "adidas.co.uk"
+    },
+    {
+      "name": "Adidas USA",
+      "region": "US",
+      "domain": "adidas.com"
+    },
+    {
+      "name": "ALDO",
+      "region": "UK",
+      "domain": "aldo.co.uk"
+    },
+    {
+      "name": "Amazon",
+      "region": "UK",
+      "domain": "amazon.co.uk"
+    },
+    {
+      "name": "AMAZON.COM",
+      "region": "US",
+      "domain": "amazon.com"
+    },
+    {
+      "name": "Ardyss",
+      "region": "US",
+      "domain": "ardyss.com"
+    },
+    {
+      "name": "Arewa Hair Extensions",
+      "region": "US",
+      "domain": "arewahairextensions.com"
+    },
+    {
+      "name": "Argos",
+      "region": "UK",
+      "domain": "argos.co.uk"
+    },
+    {
+      "name": "Asda Direct",
+      "region": "UK",
+      "domain": "asda.com"
+    },
+    {
+      "name": "Asos",
+      "region": "UK",
+      "domain": "asos.com"
+    },
+    {
+      "name": "Avon",
+      "region": "US",
+      "domain": "avon.com"
+    },
+    {
+      "name": "Banana Republic",
+      "region": "US",
+      "domain": "bananarepublic.com"
+    },
+    {
+      "name": "Barratts",
+      "region": "UK",
+      "domain": "barratts.co.uk"
+    },
+    {
+      "name": "Beaverbrooks",
+      "region": "UK",
+      "domain": "beaverbrooks.co.uk"
+    },
+    {
+      "name": "Bloomingdale's",
+      "region": "US",
+      "domain": "bloomingdales.com"
+    },
+    {
+      "name": "Boots Baby",
+      "region": "UK",
+      "domain": "boots.com"
+    },
+    {
+      "name": "Box",
+      "region": "UK",
+      "domain": "box.co.uk"
+    },
+    {
+      "name": "Burberry",
+      "region": "UK",
+      "domain": "burberry.com"
+    },
+    {
+      "name": "Burton",
+      "region": "UK",
+      "domain": "burton.co.uk"
+    },
+    {
+      "name": "Clarks",
+      "region": "UK",
+      "domain": "clarks.co.uk"
+    },
+    {
+      "name": "Comet",
+      "region": "UK",
+      "domain": "comet.co.uk"
+    },
+    {
+      "name": "Currys",
+      "region": "UK",
+      "domain": "currys.co.uk"
+    },
+    {
+      "name": "Debenhams",
+      "region": "UK",
+      "domain": "debenhams.co.uk"
+    },
+    {
+      "name": "Dell UK",
+      "region": "UK",
+      "domain": "dell.com"
+    },
+    {
+      "name": "DKNY",
+      "region": "US",
+      "domain": "dkny.com"
+    },
+    {
+      "name": "Dorothy Perkins",
+      "region": "UK",
+      "domain": "dorothyperkins.com"
+    },
+    {
+      "name": "Drug store",
+      "region": "US",
+      "domain": "drugstore.com"
+    },
+    {
+      "name": "DUNE",
+      "region": "UK",
+      "domain": "dune.co.uk"
+    },
+    {
+      "name": "Dunelm",
+      "region": "UK",
+      "domain": "dunelm.com"
+    },
+    {
+      "name": "Ebuyer",
+      "region": "UK",
+      "domain": "ebuyer.com"
+    },
+    {
+      "name": "Ernest Jones",
+      "region": "UK",
+      "domain": "ernestjones.co.uk"
+    },
+    {
+      "name": "Express",
+      "region": "US",
+      "domain": "express.com"
+    },
+    {
+      "name": "F.Hinds",
+      "region": "UK",
+      "domain": "fhinds.co.uk"
+    },
+    {
+      "name": "Gap",
+      "region": "UK",
+      "domain": "gap.co.uk"
+    },
+    {
+      "name": "Asda George",
+      "region": "UK",
+      "domain": "george.com"
+    },
+    {
+      "name": "Goldsmiths",
+      "region": "UK",
+      "domain": "goldsmiths.co.uk"
+    },
+    {
+      "name": "Gucci",
+      "region": "UK",
+      "domain": "gucci.com"
+    },
+    {
+      "name": "Hackett",
+      "region": "UK",
+      "domain": "hackett.co.uk"
+    },
+    {
+      "name": "Harrods",
+      "region": "UK",
+      "domain": "harrods.co.uk"
+    },
+    {
+      "name": "Harvey Nichols",
+      "region": "UK",
+      "domain": "harveynichols.com"
+    },
+    {
+      "name": "Hollister Co",
+      "region": "US",
+      "domain": "hollisterco.com"
+    },
+    {
+      "name": "House of Fraser",
+      "region": "UK",
+      "domain": "houseoffraser.co.uk"
+    },
+    {
+      "name": "HP UK",
+      "region": "UK",
+      "domain": "hp.com"
+    },
+    {
+      "name": "H.Samuel",
+      "region": "UK",
+      "domain": "hsamuel.co.uk"
+    },
+    {
+      "name": "Human Hair etc",
+      "region": "US",
+      "domain": "humanhairetc.com"
+    },
+    {
+      "name": "Ikea",
+      "region": "UK",
+      "domain": "ikea.co.uk"
+    },
+    {
+      "name": "JC Penny",
+      "region": "US",
+      "domain": "jcpenney.com"
+    },
+    {
+      "name": "JD Sports",
+      "region": "UK",
+      "domain": "jdsports.co.uk"
+    },
+    {
+      "name": "Jimmy Choo",
+      "region": "UK",
+      "domain": "jimmychoo.co.uk"
+    },
+    {
+      "name": "JJB Sports",
+      "region": "UK",
+      "domain": "jjbsports.com"
+    },
+    {
+      "name": "John Lewis",
+      "region": "UK",
+      "domain": "johnlewis.com"
+    },
+    {
+      "name": "JoJo Maman Bébé",
+      "region": "UK",
+      "domain": "jojomamanbebe.co.uk"
+    },
+    {
+      "name": "Jones",
+      "region": "UK",
+      "domain": "jones.co.uk"
+    },
+    {
+      "name": "Kurt Geiger",
+      "region": "UK",
+      "domain": "kurtgeiger.com"
+    },
+    {
+      "name": "Laptops Direct",
+      "region": "UK",
+      "domain": "laptopsdirect.co.uk"
+    },
+    {
+      "name": "Levi's",
+      "region": "US",
+      "domain": "levis.com"
+    },
+    {
+      "name": "Liberty",
+      "region": "UK",
+      "domain": "liberty.co.uk"
+    },
+    {
+      "name": "Louis Vuitton",
+      "region": "UK",
+      "domain": "louisvuitton.com"
+    },
+    {
+      "name": "Macy's",
+      "region": "US",
+      "domain": "macys.com"
+    },
+    {
+      "name": "M and M Direct",
+      "region": "UK",
+      "domain": "mandmdirect.com"
+    },
+    {
+      "name": "Marks and Spencer",
+      "region": "UK",
+      "domain": "marksandspencer.com"
+    },
+    {
+      "name": "Matalan",
+      "region": "UK",
+      "domain": "matalan.co.uk"
+    },
+    {
+      "name": "Moss Bros",
+      "region": "UK",
+      "domain": "mossbros.co.uk"
+    },
+    {
+      "name": "Mothercare",
+      "region": "UK",
+      "domain": "mothercare.com"
+    },
+    {
+      "name": "Neiman Marcus",
+      "region": "US",
+      "domain": "neimanmarcus.com"
+    },
+    {
+      "name": "NEXT",
+      "region": "UK",
+      "domain": "next.co.uk"
+    },
+    {
+      "name": "Nike (UK)",
+      "region": "UK",
+      "domain": "nike.com"
+    },
+    {
+      "name": "NINE WEST",
+      "region": "US",
+      "domain": "ninewest.com"
+    },
+    {
+      "name": "Nordstrom",
+      "region": "US",
+      "domain": "nordstrom.com"
+    },
+    {
+      "name": "Office",
+      "region": "UK",
+      "domain": "office.co.uk"
+    },
+    {
+      "name": "Old Navy",
+      "region": "US",
+      "domain": "oldnavy.com"
+    },
+    {
+      "name": "Overclockers UK",
+      "region": "UK",
+      "domain": "overclockers.co.uk"
+    },
+    {
+      "name": "Overstock",
+      "region": "US",
+      "domain": "overstock.com"
+    },
+    {
+      "name": "Peacocks",
+      "region": "UK",
+      "domain": "peacocks.co.uk"
+    },
+    {
+      "name": "PUMA USA",
+      "region": "US",
+      "domain": "pumausa.com"
+    },
+    {
+      "name": "Ralph Lauren",
+      "region": "US",
+      "domain": "ralphlauren.com"
+    },
+    {
+      "name": "River Island",
+      "region": "UK",
+      "domain": "riverisland.com"
+    },
+    {
+      "name": "Saks Fifth Avenue",
+      "region": "US",
+      "domain": "saksfifthavenue.com"
+    },
+    {
+      "name": "Scan",
+      "region": "UK",
+      "domain": "scan.co.uk"
+    },
+    {
+      "name": "Schuh",
+      "region": "UK",
+      "domain": "schuh.co.uk"
+    },
+    {
+      "name": "Sears",
+      "region": "US",
+      "domain": "sears.com"
+    },
+    {
+      "name": "www.shoes.co.uk",
+      "region": "UK",
+      "domain": "shoes.co.uk"
+    },
+    {
+      "name": "www.shoes.com",
+      "region": "US",
+      "domain": "shoes.com"
+    },
+    {
+      "name": "Sole Trader",
+      "region": "UK",
+      "domain": "soletrader.co.uk"
+    },
+    {
+      "name": "Sports Direct",
+      "region": "UK",
+      "domain": "sportsdirect.com"
+    },
+    {
+      "name": "Sunglasses Shop",
+      "region": "UK",
+      "domain": "sunglasses-shop.co.uk"
+    },
+    {
+      "name": "Sunglasses Hut",
+      "region": "US",
+      "domain": "sunglasshut.com"
+    },
+    {
+      "name": "Swag",
+      "region": "UK",
+      "domain": "swag.co.uk"
+    },
+    {
+      "name": "Swarovski",
+      "region": "UK",
+      "domain": "swarovski.co.uk"
+    },
+    {
+      "name": "Swatch",
+      "region": "US",
+      "domain": "swatch.com"
+    },
+    {
+      "name": "Talbots",
+      "region": "US",
+      "domain": "talbots.com"
+    },
+    {
+      "name": "Target",
+      "region": "US",
+      "domain": "target.com"
+    },
+    {
+      "name": "Tesco",
+      "region": "UK",
+      "domain": "tesco.com"
+    },
+    {
+      "name": "The Watch Hut",
+      "region": "UK",
+      "domain": "thewatchhut.co.uk"
+    },
+    {
+      "name": "The White Company",
+      "region": "UK",
+      "domain": "thewhitecompany.com"
+    },
+    {
+      "name": "Tie Rack",
+      "region": "UK",
+      "domain": "tierack.co.uk"
+    },
+    {
+      "name": "Tiffany & Co",
+      "region": "US",
+      "domain": "tiffany.com"
+    },
+    {
+      "name": "Timberland",
+      "region": "UK",
+      "domain": "timberland.co.uk"
+    },
+    {
+      "name": "Tommy Hilfiger",
+      "region": "UK",
+      "domain": "tommyhilfiger.co.uk"
+    },
+    {
+      "name": "Topman",
+      "region": "UK",
+      "domain": "topman.co.uk"
+    },
+    {
+      "name": "Toys R Us",
+      "region": "UK",
+      "domain": "toysrus.co.uk"
+    },
+    {
+      "name": "Tesco Clothing",
+      "region": "UK",
+      "domain": "tuclothing.com"
+    },
+    {
+      "name": "Pandora UK",
+      "region": "UK",
+      "domain": "uk.pandora.net"
+    },
+    {
+      "name": "Very",
+      "region": "UK",
+      "domain": "very.co.uk"
+    },
+    {
+      "name": "Walmart",
+      "region": "US",
+      "domain": "walmart.com"
+    },
+    {
+      "name": "Warren James Jewellers",
+      "region": "UK",
+      "domain": "warrenjames.co.uk"
+    },
+    {
+      "name": "Zappos",
+      "region": "US",
+      "domain": "zappos.com"
+    }
+  ]
+}

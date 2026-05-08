@@ -21,8 +21,7 @@ export const paymentWebhookSchema = z.object({
 });
 
 export const orderSchema = z.object({
-  quoteId: z.string(),
-  paymentRef: z.string()
+  quoteId: z.string()
 });
 
 export const adapterUpdateSchema = z.object({

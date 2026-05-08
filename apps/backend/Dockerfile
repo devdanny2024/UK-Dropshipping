@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1
 FROM node:20-bullseye-slim AS base
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@8.15.6 --activate
 WORKDIR /app
 
 FROM base AS deps
-COPY package.json pnpm-workspace.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY tsconfig.base.json tsconfig.base.json
 COPY apps/backend/package.json apps/backend/package.json
 COPY packages/shared/package.json packages/shared/package.json
@@ -17,6 +17,7 @@ COPY packages/shared packages/shared
 WORKDIR /app/apps/backend
 RUN pnpm install --no-frozen-lockfile --filter @uk2me/backend...
 RUN pnpm prisma:generate
+ENV NODE_OPTIONS="--max-old-space-size=1536"
 RUN pnpm build
 
 FROM base AS runner

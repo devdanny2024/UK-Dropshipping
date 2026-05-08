@@ -1,0 +1,34 @@
+# Dependencies — never copy local node_modules into the build context
+**/node_modules
+node_modules
+
+# Next.js build output
+**/.next
+**/.next/**
+
+# Misc
+**/.git
+**/.gitignore
+**/.env
+**/.env.*
+!**/.env.example
+**/tsconfig.tsbuildinfo
+
+# Logs
+**/npm-debug.log*
+**/yarn-debug.log*
+**/pnpm-debug.log*
+
+# OS
+**/.DS_Store
+**/Thumbs.db
+
+# Terraform / infra (not needed for app builds)
+infra/
+
+# Docs
+docs/
+*.md
+adapter-verification-report.json
+tasks/
+scripts/

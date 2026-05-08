@@ -55,12 +55,11 @@ function QuoteContent() {
     setOrderLoading(true);
     setOrderError(null);
     try {
-      const paymentRef = `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const res = await fetch('/api/proxy/v1/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ quoteId, paymentRef })
+        body: JSON.stringify({ quoteId })
       });
       const payload = await res.json();
       if (res.status === 401) {
