@@ -66,7 +66,7 @@ function PreviewContent() {
           productSnapshotId: resolved.snapshotId,
           size,
           color,
-          qty,
+          qty: quantity,
           addressId: 'placeholder'
         })
       });
