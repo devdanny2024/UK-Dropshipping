@@ -3,6 +3,8 @@ import { ok, fail } from '../../../../../../lib/response';
 import { prisma } from '../../../../../../lib/prisma';
 import { createOrderEvent } from '../../../../../../lib/events';
 import { verifyStripeWebhook } from '../../../../../../lib/stripe';
+import { sendMail } from '../../../../../../lib/mailer';
+import { paymentConfirmedEmail } from '../../../../../../lib/emails';
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
@@ -55,11 +57,17 @@ export async function POST(request: NextRequest) {
   });
 
   if (orderId) {
-    await prisma.order.update({
+    const order = await prisma.order.update({
       where: { id: orderId },
-      data: { status: status === 'CAPTURED' ? 'PROCESSING' : 'PLACED' }
+      data: { status: status === 'CAPTURED' ? 'PROCESSING' : 'PLACED' },
+      include: { user: { select: { email: true, name: true } } }
     });
     await createOrderEvent(orderId, 'PAYMENT', `Stripe payment ${sessionId} ${status.toLowerCase()}`);
+
+    if (status === 'CAPTURED' && order.user?.email) {
+      const mail = paymentConfirmedEmail(order.user.name ?? '', orderId, amountTotal, currency, 'stripe');
+      await sendMail({ to: order.user.email, ...mail });
+    }
   }
 
   return ok({ id: payment.id, status: payment.status, paymentRef: payment.paymentRef });

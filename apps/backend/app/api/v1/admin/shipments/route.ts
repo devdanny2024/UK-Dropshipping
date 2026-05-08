@@ -6,6 +6,8 @@ import { prisma } from '../../../../../lib/prisma';
 import { createOrderEvent } from '../../../../../lib/events';
 import { getQueues } from '../../../../../lib/queue';
 import { requireAdmin } from '../../../../../lib/auth';
+import { sendMail } from '../../../../../lib/mailer';
+import { shipmentDispatchedEmail } from '../../../../../lib/emails';
 
 export async function GET(request: NextRequest) {
   const auth = requireAdmin(request);
@@ -34,7 +36,10 @@ export async function POST(request: NextRequest) {
   const { data, error } = await parseBody(request, shipmentSchema);
   if (error) return error;
 
-  const order = await prisma.order.findUnique({ where: { id: data.orderId } });
+  const order = await prisma.order.findUnique({
+    where: { id: data.orderId },
+    include: { user: { select: { email: true, name: true } } }
+  });
   if (!order) {
     return fail('NOT_FOUND', 'Order not found', 404);
   }
@@ -55,6 +60,11 @@ export async function POST(request: NextRequest) {
   });
 
   await createOrderEvent(data.orderId, 'SHIPMENT', `Shipment created: ${shipment.trackingNumber}`);
+
+  if (order.user?.email) {
+    const mail = shipmentDispatchedEmail(order.user.name ?? '', data.orderId, data.carrier, data.trackingNumber);
+    await sendMail({ to: order.user.email, ...mail });
+  }
 
   return ok({ id: shipment.id, status: shipment.status });
 }

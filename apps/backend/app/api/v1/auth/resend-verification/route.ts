@@ -5,6 +5,7 @@ import { resendVerificationSchema } from '../../../../../lib/schemas';
 import { prisma } from '../../../../../lib/prisma';
 import { generateToken } from '../../../../../lib/auth';
 import { sendMail } from '../../../../../lib/mailer';
+import { resendVerificationEmail } from '../../../../../lib/emails';
 
 export async function POST(request: NextRequest) {
   const { data, error } = await parseBody(request, resendVerificationSchema);
@@ -28,11 +29,8 @@ export async function POST(request: NextRequest) {
     }
   });
 
-  await sendMail({
-    to: user.email,
-    subject: 'Verify your UK2MeOnline email',
-    text: `Verify your email: https://uk-dropshipping-client.vercel.app/verify-email?token=${token}`
-  });
+  const mail = resendVerificationEmail(user.name ?? '', token);
+  await sendMail({ to: user.email, ...mail });
 
   return ok({ sent: true });
 }

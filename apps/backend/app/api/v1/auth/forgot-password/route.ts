@@ -5,6 +5,7 @@ import { forgotPasswordSchema } from '../../../../../lib/schemas';
 import { prisma } from '../../../../../lib/prisma';
 import { generateToken } from '../../../../../lib/auth';
 import { sendMail } from '../../../../../lib/mailer';
+import { forgotPasswordEmail } from '../../../../../lib/emails';
 
 export async function POST(request: NextRequest) {
   const { data, error } = await parseBody(request, forgotPasswordSchema);
@@ -24,11 +25,8 @@ export async function POST(request: NextRequest) {
     }
   });
 
-  await sendMail({
-    to: user.email,
-    subject: 'Reset your UK2MeOnline password',
-    text: `Reset your password: https://uk-dropshipping-client.vercel.app/reset-password?token=${token}`
-  });
+  const mail = forgotPasswordEmail(user.name ?? '', token);
+  await sendMail({ to: user.email, ...mail });
 
   return ok({ sent: true });
 }
