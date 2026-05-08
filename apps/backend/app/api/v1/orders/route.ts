@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
   });
 
   return ok(
-    orders.map((order) => ({
+    orders.map((order: (typeof orders)[number]) => ({
       id: order.id,
       status: order.status,
       total: order.total,

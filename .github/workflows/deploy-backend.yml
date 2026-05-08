@@ -28,6 +28,9 @@ jobs:
       - name: Install deps
         run: pnpm install --no-frozen-lockfile
 
+      - name: Generate Prisma client
+        run: pnpm --filter @uk2me/backend prisma:generate
+
       - name: Lint
         run: pnpm lint
 

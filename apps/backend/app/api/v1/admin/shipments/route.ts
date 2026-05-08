@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   });
 
   return ok(
-    shipments.map((s) => ({
+    shipments.map((s: (typeof shipments)[number]) => ({
       id: s.id,
       orderId: s.orderId,
       carrier: s.carrier,

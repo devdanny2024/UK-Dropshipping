@@ -8,7 +8,7 @@ export async function GET(_request: NextRequest) {
   const adapters = await prisma.adapterState.findMany({ orderBy: [{ name: 'asc' }] });
 
   return ok({
-    adapters: adapters.map((adapter) => ({
+    adapters: adapters.map((adapter: (typeof adapters)[number]) => ({
       id: adapter.id,
       name: adapter.name,
       domain: adapter.domain,
