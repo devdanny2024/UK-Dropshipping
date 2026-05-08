@@ -4,7 +4,10 @@ import { parseBody } from '../../../../../lib/parse';
 import { paymentInitSchema } from '../../../../../lib/schemas';
 import { getClientSession } from '../../../../../lib/auth';
 import { prisma } from '../../../../../lib/prisma';
-import { initializeFlutterwavePayment, newTxRef } from '../../../../../lib/flutterwave';
+import { initializePaystackPayment, newPaystackRef } from '../../../../../lib/paystack';
+import { createStripeCheckoutSession } from '../../../../../lib/stripe';
+import { getFxRates, convertAmount } from '../../../../../lib/fx';
+import { getAllFxOverrides } from '../../../../../lib/settings';
 
 export async function POST(request: NextRequest) {
   const session = await getClientSession(request);
@@ -16,24 +19,62 @@ export async function POST(request: NextRequest) {
   const order = await prisma.order.findUnique({ where: { id: data.orderId }, include: { user: true } });
   if (!order || order.userId !== session.userId) return fail('NOT_FOUND', 'Order not found', 404);
 
-  const txRef = data.txRef ?? newTxRef(order.id);
-  const redirectUrl = `${process.env.FLW_REDIRECT_URL}?orderId=${encodeURIComponent(order.id)}`;
+  if (data.provider === 'stripe') {
+    const baseUrl = process.env.STRIPE_REDIRECT_URL ?? 'http://localhost:3000/pay/callback';
+    const successUrl = `${baseUrl}?orderId=${encodeURIComponent(order.id)}&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${process.env.CLIENT_ORIGIN ?? 'http://localhost:3000'}/pay?orderId=${encodeURIComponent(order.id)}`;
 
-  const payment = await initializeFlutterwavePayment({
-    txRef,
-    amount: order.total,
-    currency: order.currency,
-    redirectUrl,
-    customer: {
-      email: order.user?.email ?? 'customer@uk2meonline.com',
-      name: order.user?.name
-    },
-    meta: { orderId: order.id, userId: order.userId }
+    // Stripe uses smallest currency unit (pence for GBP)
+    const amountPence = Math.round(order.total * 100);
+
+    const stripeSession = await createStripeCheckoutSession({
+      amountPence,
+      currency: order.currency,
+      successUrl,
+      cancelUrl,
+      customerEmail: order.user?.email,
+      description: `UK2ME Order ${order.id}`,
+      metadata: { orderId: order.id, userId: order.userId ?? '' }
+    });
+
+    return ok({
+      orderId: order.id,
+      provider: 'stripe',
+      sessionId: stripeSession.id,
+      checkoutUrl: stripeSession.url
+    });
+  }
+
+  // Paystack — convert to NGN
+  const ref = data.reference ?? newPaystackRef(order.id);
+  const callbackUrl = `${process.env.PAYSTACK_REDIRECT_URL ?? 'http://localhost:3000/pay/callback'}?orderId=${encodeURIComponent(order.id)}`;
+
+  let ngnAmount = order.total;
+  if (order.currency !== 'NGN') {
+    const overrides = await getAllFxOverrides();
+    const pair = `${order.currency}_NGN`;
+    let rate = overrides[pair] ?? null;
+    if (!rate) {
+      const fxData = await getFxRates(order.currency, ['NGN']);
+      rate = fxData.rates['NGN'] ?? null;
+    }
+    if (!rate) return fail('FX_UNAVAILABLE', 'Could not get exchange rate to NGN', 503);
+    ngnAmount = convertAmount(order.total, rate);
+  }
+
+  const payment = await initializePaystackPayment({
+    reference: ref,
+    amountKobo: Math.round(ngnAmount * 100),
+    email: order.user?.email ?? 'customer@uk2meonline.com',
+    callbackUrl,
+    metadata: { orderId: order.id, userId: order.userId }
   });
 
   return ok({
     orderId: order.id,
-    txRef,
-    checkoutUrl: payment.link
+    provider: 'paystack',
+    reference: ref,
+    checkoutUrl: payment.authorization_url,
+    ngnAmount
   });
 }

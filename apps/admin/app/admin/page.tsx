@@ -1,45 +1,47 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { TrendingUp, AlertTriangle, Package, Plane } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { mockOrders, mockStoreAdapters } from '@/data/mockData';
+
+type Order = {
+  id: string;
+  status: string;
+  total: number;
+  currency: string;
+  createdAt: string;
+  updatedAt: string;
+  hasPendingAttempt: boolean;
+};
+
+const COLORS = ['#0f172a', '#475569', '#94a3b8', '#cbd5e1', '#ef4444'];
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const ordersToday = mockOrders.filter((order) => {
-    const orderDate = new Date(order.createdAt);
-    const today = new Date();
-    return orderDate.toDateString() === today.toDateString();
-  }).length;
+  const [orders, setOrders] = useState<Order[]>([]);
 
-  const ordersRequiringAction = mockOrders.filter((order) => order.requiresAction).length;
-  const inboundUK = mockOrders.filter(
-    (order) => order.status === 'inbound_uk' || order.status === 'received_uk'
-  ).length;
-  const outboundShipments = mockOrders.filter(
-    (order) => order.status === 'shipped_nigeria' || order.status === 'out_for_delivery'
-  ).length;
+  useEffect(() => {
+    fetch('/api/proxy/v1/admin/orders', { credentials: 'include' })
+      .then((res) => res.json())
+      .then((payload) => { if (payload?.ok) setOrders(payload.data ?? []); })
+      .catch(() => undefined);
+  }, []);
+
+  const today = new Date().toDateString();
+  const ordersToday = orders.filter((o) => new Date(o.createdAt).toDateString() === today).length;
+  const actionRequired = orders.filter((o) => o.status === 'AWAITING_PURCHASE').length;
+  const inboundUK = orders.filter((o) => o.status === 'PROCESSING').length;
+  const shipped = orders.filter((o) => o.status === 'SHIPPED').length;
 
   const statusData = [
-    { name: 'Paid', value: mockOrders.filter((order) => order.status === 'paid').length },
-    { name: 'Purchasing', value: mockOrders.filter((order) => order.status === 'purchasing').length },
-    {
-      name: 'In Transit',
-      value: mockOrders.filter((order) => ['inbound_uk', 'shipped_nigeria'].includes(order.status)).length
-    },
-    { name: 'Delivered', value: mockOrders.filter((order) => order.status === 'delivered').length },
-    { name: 'Action Required', value: ordersRequiringAction }
-  ];
-
-  const automationData = [
-    { name: 'Automated', value: mockOrders.filter((order) => order.purchaseMode === 'AUTO').length },
-    { name: 'Manual', value: mockOrders.filter((order) => order.purchaseMode === 'MANUAL').length }
-  ];
-
-  const COLORS = ['#0f172a', '#475569', '#94a3b8', '#cbd5e1', '#ef4444'];
-  const AUTO_COLORS = ['#22c55e', '#f59e0b'];
+    { name: 'Placed', value: orders.filter((o) => o.status === 'PLACED').length },
+    { name: 'Processing', value: orders.filter((o) => o.status === 'PROCESSING').length },
+    { name: 'Awaiting Purchase', value: orders.filter((o) => o.status === 'AWAITING_PURCHASE').length },
+    { name: 'Shipped', value: orders.filter((o) => o.status === 'SHIPPED').length },
+    { name: 'Delivered', value: orders.filter((o) => o.status === 'DELIVERED').length },
+  ].filter((d) => d.value > 0);
 
   return (
     <div className="p-8 space-y-8">
@@ -49,17 +51,14 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => router.push('/admin/orders')}
-        >
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/admin/orders')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Orders Today</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-foreground">{ordersToday}</div>
-            <p className="text-xs text-muted-foreground mt-2">+12% from yesterday</p>
+            <p className="text-xs text-muted-foreground mt-2">Based on live data</p>
           </CardContent>
         </Card>
 
@@ -72,143 +71,92 @@ export default function AdminDashboardPage() {
             <AlertTriangle className="h-4 w-4 text-red-700 dark:text-red-200" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-red-900 dark:text-red-100">{ordersRequiringAction}</div>
+            <div className="text-3xl font-bold text-red-900 dark:text-red-100">{actionRequired}</div>
             <p className="text-xs text-red-700 dark:text-red-200 mt-2">Needs immediate attention</p>
           </CardContent>
         </Card>
 
         <Card className="cursor-pointer hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Inbound UK</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Processing</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-foreground">{inboundUK}</div>
-            <p className="text-xs text-muted-foreground mt-2">Parcels at UK warehouse</p>
+            <p className="text-xs text-muted-foreground mt-2">Orders being processed</p>
           </CardContent>
         </Card>
 
         <Card className="cursor-pointer hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Outbound Shipments</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Shipped</CardTitle>
             <Plane className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground">{outboundShipments}</div>
-            <p className="text-xs text-muted-foreground mt-2">En route to Nigeria</p>
+            <div className="text-3xl font-bold text-foreground">{shipped}</div>
+            <p className="text-xs text-muted-foreground mt-2">In transit to customer</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Orders by Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Automation Performance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={automationData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {automationData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={AUTO_COLORS[index % AUTO_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Store Adapter Performance</CardTitle>
-            <button
-              type="button"
-              className="text-sm text-muted-foreground hover:text-foreground"
-              onClick={() => router.push('/admin/adapters')}
-            >
-              View all
-            </button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {mockStoreAdapters.slice(0, 3).map((adapter) => (
-              <div key={adapter.id} className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <span className="font-medium text-foreground">{adapter.domain}</span>
-                    <span
-                      className={`text-xs px-2 py-1 rounded ${
-                        adapter.status === 'active'
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-100'
-                          : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-100'
-                      }`}
-                    >
-                      {adapter.status}
-                    </span>
-                  </div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    {adapter.successfulAttempts} / {adapter.totalAttempts} successful
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div
-                    className={`text-2xl font-semibold ${
-                      adapter.successRate >= 90
-                        ? 'text-green-600'
-                        : adapter.successRate >= 70
-                        ? 'text-yellow-600'
-                        : 'text-red-600'
-                    }`}
+      {statusData.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Orders by Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={statusData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                    outerRadius={80}
+                    dataKey="value"
                   >
-                    {adapter.successRate}%
+                    {statusData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Orders</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {orders.slice(0, 5).map((order) => (
+                  <div
+                    key={order.id}
+                    className="flex items-center justify-between cursor-pointer hover:bg-muted/30 rounded p-2 -mx-2"
+                    onClick={() => router.push(`/admin/orders/${order.id}`)}
+                  >
+                    <div>
+                      <div className="font-mono text-sm">{order.id}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleDateString('en-GB')}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium text-sm">{order.currency} {order.total.toFixed(2)}</div>
+                      <div className="text-xs text-muted-foreground">{order.status}</div>
+                    </div>
                   </div>
-                </div>
+                ))}
+                {orders.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No orders yet</p>
+                )}
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
-

@@ -1,14 +1,106 @@
 'use client';
 
-import { DollarSign, Truck, Bell, Settings as SettingsIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { DollarSign, Truck, Bell, Settings as SettingsIcon, RefreshCw, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Separator } from '@/app/components/ui/separator';
 import { Switch } from '@/app/components/ui/switch';
+import { Badge } from '@/app/components/ui/badge';
+
+type FxData = {
+  overrides: Record<string, number>;
+  live: Record<string, number>;
+};
+
+const PAIRS = [
+  { key: 'GBP_USD', label: 'GBP → USD' },
+  { key: 'GBP_NGN', label: 'GBP → NGN' },
+  { key: 'USD_NGN', label: 'USD → NGN' }
+];
 
 export default function AdminSettingsPage() {
+  const [fxData, setFxData] = useState<FxData | null>(null);
+  const [fxLoading, setFxLoading] = useState(true);
+  const [overrideInputs, setOverrideInputs] = useState<Record<string, string>>({});
+  const [fxSaving, setFxSaving] = useState<string | null>(null);
+
+  const [feeValue, setFeeValue] = useState('');
+  const [feeSaving, setFeeSaving] = useState(false);
+  const [feeMsg, setFeeMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadFx();
+    loadFee();
+  }, []);
+
+  async function loadFx() {
+    setFxLoading(true);
+    try {
+      const res = await fetch('/api/proxy/v1/admin/fx', { credentials: 'include' });
+      const payload = await res.json();
+      if (payload?.ok) setFxData(payload.data);
+    } catch { /* noop */ }
+    finally { setFxLoading(false); }
+  }
+
+  async function loadFee() {
+    try {
+      const res = await fetch('/api/proxy/v1/admin/finance', { credentials: 'include' });
+      const payload = await res.json();
+      if (payload?.ok) setFeeValue(String(payload.data?.feePercent ?? '5'));
+    } catch { /* noop */ }
+  }
+
+  async function saveFxOverride(pair: string) {
+    const rateStr = overrideInputs[pair];
+    const rate = Number(rateStr);
+    if (!rateStr || !Number.isFinite(rate) || rate <= 0) return;
+    setFxSaving(pair);
+    try {
+      await fetch('/api/proxy/v1/admin/fx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ pair, rate })
+      });
+      await loadFx();
+      setOverrideInputs((prev) => ({ ...prev, [pair]: '' }));
+    } catch { /* noop */ }
+    finally { setFxSaving(null); }
+  }
+
+  async function clearFxOverride(pair: string) {
+    setFxSaving(pair);
+    try {
+      await fetch(`/api/proxy/v1/admin/fx?pair=${encodeURIComponent(pair)}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      await loadFx();
+    } catch { /* noop */ }
+    finally { setFxSaving(null); }
+  }
+
+  async function saveFee() {
+    const val = Number(feeValue);
+    if (!Number.isFinite(val) || val < 0 || val > 100) return;
+    setFeeSaving(true);
+    setFeeMsg(null);
+    try {
+      await fetch('/api/proxy/v1/admin/finance', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ feePercent: val })
+      });
+      setFeeMsg('Saved');
+    } catch { setFeeMsg('Error saving'); }
+    finally { setFeeSaving(false); }
+  }
+
   return (
     <div className="p-8 space-y-6">
       <div>
@@ -23,18 +115,25 @@ export default function AdminSettingsPage() {
               <DollarSign className="h-5 w-5" />
               Pricing & Fees
             </CardTitle>
-            <CardDescription>Adjust service fees and buffers</CardDescription>
+            <CardDescription>Adjust service fees</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="serviceFee">Service Fee (%)</Label>
-              <Input id="serviceFee" defaultValue="6.5" />
+              <Input
+                id="serviceFee"
+                type="number"
+                min={0}
+                max={100}
+                step={0.1}
+                value={feeValue}
+                onChange={(e) => setFeeValue(e.target.value)}
+              />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="duties">Duties Buffer (%)</Label>
-              <Input id="duties" defaultValue="12" />
-            </div>
-            <Button className="w-full">Save Pricing</Button>
+            {feeMsg && <p className="text-sm text-muted-foreground">{feeMsg}</p>}
+            <Button className="w-full" onClick={saveFee} disabled={feeSaving}>
+              {feeSaving ? 'Saving...' : 'Save Pricing'}
+            </Button>
           </CardContent>
         </Card>
 
@@ -59,6 +158,89 @@ export default function AdminSettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between">
+          <div className="space-y-1">
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Currency & FX Rates
+            </CardTitle>
+            <CardDescription>Live rates with optional admin overrides. Overrides take precedence over live data.</CardDescription>
+          </div>
+          <Button variant="ghost" size="sm" className="gap-2" onClick={loadFx} disabled={fxLoading}>
+            <RefreshCw className={`h-4 w-4 ${fxLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {fxLoading ? (
+            <p className="text-sm text-muted-foreground py-4">Loading rates...</p>
+          ) : (
+            <div className="space-y-4">
+              {PAIRS.map(({ key, label }) => {
+                const liveRate = fxData?.live[key];
+                const override = fxData?.overrides[key];
+                const activeRate = override ?? liveRate;
+                return (
+                  <div key={key} className="rounded-lg border border-border p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-sm">{label}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Live: {liveRate != null ? liveRate.toFixed(4) : 'N/A'}
+                          {override != null && (
+                            <span className="ml-2 text-amber-600">
+                              | Override: {override.toFixed(4)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {activeRate != null && (
+                          <Badge variant={override != null ? 'default' : 'secondary'}>
+                            {activeRate.toFixed(4)} {override != null ? '(override)' : '(live)'}
+                          </Badge>
+                        )}
+                        {override != null && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => clearFxOverride(key)}
+                            disabled={fxSaving === key}
+                            title="Clear override"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        step="0.0001"
+                        min="0"
+                        placeholder={`Set override rate (e.g. ${liveRate?.toFixed(2) ?? '0.00'})`}
+                        className="h-8 text-sm"
+                        value={overrideInputs[key] ?? ''}
+                        onChange={(e) => setOverrideInputs((prev) => ({ ...prev, [key]: e.target.value }))}
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => saveFxOverride(key)}
+                        disabled={fxSaving === key || !overrideInputs[key]}
+                      >
+                        {fxSaving === key ? 'Saving...' : 'Set'}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -106,7 +288,7 @@ export default function AdminSettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="adminEmail">Primary Admin Email</Label>
-            <Input id="adminEmail" defaultValue="admin@uk2me.com" />
+            <Input id="adminEmail" defaultValue="soliupeter@gmail.com" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="timezone">Time Zone</Label>
@@ -118,4 +300,3 @@ export default function AdminSettingsPage() {
     </div>
   );
 }
-

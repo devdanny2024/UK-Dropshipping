@@ -22,16 +22,30 @@ export async function GET(request: NextRequest) {
   }
   const orders = await prisma.order.findMany({
     where: status ? { status: status as (typeof allowedStatuses)[number] } : undefined,
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: 'desc' },
+    include: {
+      user: { select: { name: true, email: true } },
+      items: {
+        include: { productSnapshot: { select: { title: true, url: true } } },
+        take: 1
+      },
+      attempts: { orderBy: { createdAt: 'desc' }, take: 1 }
+    }
   });
 
   return ok(
-    orders.map((order: { id: string; status: string; total: number; currency: string; createdAt: Date }) => ({
+    orders.map((order) => ({
       id: order.id,
       status: order.status,
       total: order.total,
       currency: order.currency,
-      createdAt: order.createdAt.toISOString()
+      createdAt: order.createdAt.toISOString(),
+      updatedAt: order.updatedAt.toISOString(),
+      customerName: order.user?.name ?? 'Guest',
+      customerEmail: order.user?.email ?? null,
+      productTitle: order.items[0]?.productSnapshot?.title ?? null,
+      productUrl: order.items[0]?.productSnapshot?.url ?? null,
+      hasPendingAttempt: order.attempts[0]?.status === 'QUEUED' || order.attempts[0]?.status === 'RUNNING'
     }))
   );
 }

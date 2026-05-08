@@ -1,14 +1,38 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Package, Plane, Upload } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
 import { Badge } from '@/app/components/ui/badge';
-import { mockShipments, mockOrders } from '@/data/mockData';
+import { StatusBadge } from '@/app/components/StatusBadge';
+
+type Shipment = {
+  id: string;
+  orderId: string;
+  carrier: string;
+  trackingNumber: string;
+  status: string;
+  createdAt: string;
+};
 
 export default function AdminShipmentsPage() {
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/proxy/v1/admin/shipments', { credentials: 'include' })
+      .then((res) => res.json())
+      .then((payload) => { if (payload?.ok) setShipments(payload.data ?? []); })
+      .catch(() => undefined)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const inbound = shipments.filter((s) => s.status === 'CREATED' || s.status === 'IN_TRANSIT');
+  const delivered = shipments.filter((s) => s.status === 'DELIVERED');
+
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
@@ -24,112 +48,69 @@ export default function AdminShipmentsPage() {
 
       <Tabs defaultValue="inbound" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="inbound">Inbound UK</TabsTrigger>
-          <TabsTrigger value="outbound">Outbound Nigeria</TabsTrigger>
+          <TabsTrigger value="inbound">Active ({inbound.length})</TabsTrigger>
+          <TabsTrigger value="outbound">Delivered ({delivered.length})</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="inbound">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                UK Warehouse Arrivals
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-lg border border-border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Shipment</TableHead>
-                      <TableHead>Order</TableHead>
-                      <TableHead>Carrier</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Weight</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockShipments
-                      .filter((shipment) => shipment.type === 'inbound')
-                      .map((shipment) => (
-                        <TableRow key={shipment.id}>
-                          <TableCell className="font-medium">{shipment.id}</TableCell>
-                          <TableCell>{shipment.orderId}</TableCell>
-                          <TableCell>{shipment.carrier}</TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">{shipment.status}</Badge>
-                          </TableCell>
-                          <TableCell>{shipment.weight ?? 'N/A'}</TableCell>
+        {[{ key: 'inbound', label: 'Active Shipments', icon: Package, items: inbound },
+          { key: 'outbound', label: 'Delivered Shipments', icon: Plane, items: delivered }
+        ].map(({ key, label, icon: Icon, items }) => (
+          <TabsContent key={key} value={key}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Icon className="h-5 w-5" />
+                  {label}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">Loading shipments...</p>
+                ) : (
+                  <div className="rounded-lg border border-border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Shipment ID</TableHead>
+                          <TableHead>Order</TableHead>
+                          <TableHead>Carrier</TableHead>
+                          <TableHead>Tracking</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Created</TableHead>
                         </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="outbound">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plane className="h-5 w-5" />
-                International Shipments
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-lg border border-border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Shipment</TableHead>
-                      <TableHead>Order</TableHead>
-                      <TableHead>Carrier</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>ETA</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockShipments
-                      .filter((shipment) => shipment.type === 'outbound')
-                      .map((shipment) => (
-                        <TableRow key={shipment.id}>
-                          <TableCell className="font-medium">{shipment.id}</TableCell>
-                          <TableCell>{shipment.orderId}</TableCell>
-                          <TableCell>{shipment.carrier}</TableCell>
-                          <TableCell>
-                            <Badge variant={shipment.status === 'Delivered' ? 'default' : 'secondary'}>
-                              {shipment.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{shipment.eta ?? 'N/A'}</TableCell>
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                {mockOrders.slice(0, 2).map((order) => (
-                  <Card key={order.id}>
-                    <CardHeader>
-                      <CardTitle className="text-base">{order.productName}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-sm text-muted-foreground">{order.customerName}</div>
-                      <div className="mt-2 flex items-center gap-2 text-sm">
-                        <Plane className="h-4 w-4" />
-                        {order.status.replace(/_/g, ' ')}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                      </TableHeader>
+                      <TableBody>
+                        {items.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                              No shipments
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          items.map((shipment) => (
+                            <TableRow key={shipment.id}>
+                              <TableCell className="font-mono text-sm">{shipment.id}</TableCell>
+                              <TableCell className="font-mono text-sm">{shipment.orderId}</TableCell>
+                              <TableCell>{shipment.carrier}</TableCell>
+                              <TableCell className="font-mono text-sm">{shipment.trackingNumber}</TableCell>
+                              <TableCell>
+                                <StatusBadge status={shipment.status} />
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {new Date(shipment.createdAt).toLocaleDateString('en-GB')}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ))}
       </Tabs>
     </div>
   );
 }
-

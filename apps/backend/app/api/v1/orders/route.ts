@@ -86,16 +86,25 @@ export async function GET(request: NextRequest) {
 
   const orders = await prisma.order.findMany({
     where: { userId: session.userId },
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: 'desc' },
+    include: {
+      items: {
+        include: { productSnapshot: { select: { title: true, url: true, imageUrl: true } } },
+        take: 1
+      }
+    }
   });
 
   return ok(
-    orders.map((order: { id: string; status: string; total: number; currency: string; createdAt: Date }) => ({
+    orders.map((order) => ({
       id: order.id,
       status: order.status,
       total: order.total,
       currency: order.currency,
-      createdAt: order.createdAt.toISOString()
+      createdAt: order.createdAt.toISOString(),
+      productTitle: order.items[0]?.productSnapshot?.title ?? null,
+      productUrl: order.items[0]?.productSnapshot?.url ?? null,
+      productImage: order.items[0]?.productSnapshot?.imageUrl ?? null
     }))
   );
 }

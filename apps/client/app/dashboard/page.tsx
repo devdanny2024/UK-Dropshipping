@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/app/components/ui/accordion';
 import { Badge } from '@/app/components/ui/badge';
@@ -9,30 +9,39 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/ca
 import { Input } from '@/app/components/ui/input';
 import { AccountShell } from '@/app/components/AccountShell';
 import { StatusBadge } from '@/app/components/StatusBadge';
-import { currentUser, mockOrders } from '@/data/mockData';
 
-const trendingStores = [
+type Order = {
+  id: string;
+  status: string;
+  total: number;
+  currency: string;
+  createdAt: string;
+  productTitle: string | null;
+};
+
+const TRENDING_STORES = [
   { name: 'ASOS', domain: 'asos.com', status: 'online' },
   { name: 'Zara', domain: 'zara.com', status: 'online' },
   { name: 'Amazon UK', domain: 'amazon.co.uk', status: 'online' },
-  { name: 'H&M', domain: 'hm.com', status: 'offline' },
+  { name: 'H&M', domain: 'hm.com', status: 'online' },
   { name: 'Next', domain: 'next.co.uk', status: 'online' },
 ];
 
 export default function DashboardPage() {
   const router = useRouter();
   const [productUrl, setProductUrl] = useState('');
+  const [orders, setOrders] = useState<Order[]>([]);
 
-  const orders = useMemo(
-    () => mockOrders.filter((order) => order.customerId === currentUser.id),
-    []
-  );
+  useEffect(() => {
+    fetch('/api/proxy/v1/orders', { credentials: 'include' })
+      .then((res) => res.json())
+      .then((payload) => { if (payload?.ok) setOrders(payload.data ?? []); })
+      .catch(() => undefined);
+  }, []);
 
-  const delivered = orders.filter((order) => order.status === 'delivered');
-  const ongoing = orders.filter(
-    (order) => order.status !== 'delivered' && order.status !== 'action_required'
-  );
-  const others = orders.filter((order) => order.status === 'action_required');
+  const delivered = orders.filter((o) => o.status === 'DELIVERED' || o.status === 'delivered');
+  const ongoing = orders.filter((o) => !['DELIVERED', 'CANCELLED', 'delivered', 'action_required'].includes(o.status));
+  const others = orders.filter((o) => o.status === 'CANCELLED' || o.status === 'action_required');
 
   const metrics = [
     { key: 'total', label: 'All Orders', value: orders.length, items: orders },
@@ -74,7 +83,7 @@ export default function DashboardPage() {
                             <div key={order.id} className="rounded-md border border-border p-2">
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <div className="text-sm font-medium">{order.productName}</div>
+                                  <div className="text-sm font-medium">{order.productTitle ?? 'Order'}</div>
                                   <div className="text-xs text-muted-foreground">{order.id}</div>
                                 </div>
                                 <StatusBadge status={order.status} />
@@ -116,7 +125,7 @@ export default function DashboardPage() {
               <CardTitle>Trending stores</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {trendingStores.map((store) => (
+              {TRENDING_STORES.map((store) => (
                 <div key={store.domain} className="flex items-center justify-between">
                   <div>
                     <div className="text-sm font-medium">{store.name}</div>
@@ -124,18 +133,10 @@ export default function DashboardPage() {
                   </div>
                   <Badge
                     variant="outline"
-                    className={`gap-2 ${
-                      store.status === 'online'
-                        ? 'border-green-200 text-green-700 dark:border-green-700 dark:text-green-200'
-                        : 'border-red-200 text-red-700 dark:border-red-700 dark:text-red-200'
-                    }`}
+                    className="gap-2 border-green-200 text-green-700 dark:border-green-700 dark:text-green-200"
                   >
-                    <span
-                      className={`h-2 w-2 rounded-full ${
-                        store.status === 'online' ? 'bg-green-500' : 'bg-red-500'
-                      }`}
-                    />
-                    {store.status === 'online' ? 'Online' : 'Offline'}
+                    <span className="h-2 w-2 rounded-full bg-green-500" />
+                    Online
                   </Badge>
                 </div>
               ))}

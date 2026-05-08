@@ -32,8 +32,14 @@ export const adapterUpdateSchema = z.object({
 
 export const paymentInitSchema = z.object({
   orderId: z.string(),
-  txRef: z.string().optional(),
+  provider: z.enum(['paystack', 'stripe']).default('paystack'),
+  reference: z.string().optional(),
   redirectPath: z.string().optional()
+});
+
+export const fxOverrideSchema = z.object({
+  pair: z.string().min(3).max(10),
+  rate: z.number().positive()
 });
 
 export const platformFeeSchema = z.object({

@@ -4,8 +4,12 @@ import { fail } from './response';
 import { prisma } from './prisma';
 
 export function requireAdmin(request: NextRequest) {
-  // Auth disabled for presentation/demo purposes.
-  // TODO: Re-enable admin auth checks before production.
+  if (process.env.ADMIN_AUTH_DISABLED === 'true') return null;
+  const cookieName = process.env.ADMIN_SESSION_COOKIE ?? 'admin_session';
+  const cookie = request.cookies.get(cookieName);
+  if (!cookie || cookie.value !== 'active') {
+    return fail('UNAUTHORIZED', 'Admin session required', 401);
+  }
   return null;
 }
 

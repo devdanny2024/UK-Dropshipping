@@ -21,12 +21,15 @@ function PreviewContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resolved, setResolved] = useState<{
+    snapshotId?: string;
     title: string;
     imageUrl?: string | null;
     price?: number | null;
     currency?: string | null;
     url: string;
   } | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
   const { addItem } = useCart();
 
   const hasUrl = Boolean(params.get('url'));
@@ -50,8 +53,38 @@ function PreviewContent() {
     };
   }, [params, resolved]);
 
-  const handleGenerateQuote = () => {
-    router.push('/quote');
+  const handleGenerateQuote = async () => {
+    if (!resolved?.snapshotId) return;
+    setQuoteLoading(true);
+    setQuoteError(null);
+    try {
+      const res = await fetch('/api/proxy/v1/quotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          productSnapshotId: resolved.snapshotId,
+          size,
+          color,
+          qty,
+          addressId: 'placeholder'
+        })
+      });
+      const payload = await res.json();
+      if (res.status === 401) {
+        router.push(`/login?next=${encodeURIComponent(window.location.href)}`);
+        return;
+      }
+      if (!res.ok || !payload.ok) {
+        throw new Error(payload?.error?.message ?? 'Failed to create quote');
+      }
+      localStorage.setItem('uk2me-active-quote', JSON.stringify(payload.data));
+      router.push(`/quote?quoteId=${payload.data.id}`);
+    } catch (err) {
+      setQuoteError(err instanceof Error ? err.message : 'Failed to create quote');
+    } finally {
+      setQuoteLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -82,6 +115,7 @@ function PreviewContent() {
           throw new Error('Product details were incomplete. Please try another link.');
         }
         setResolved({
+          snapshotId: data.id,
           title: data.title,
           imageUrl: data.imageUrl ?? null,
           price: data.price ?? null,
@@ -237,8 +271,11 @@ function PreviewContent() {
                 </div>
 
                 <div className="pt-4 space-y-3">
-                  <Button onClick={handleGenerateQuote} className="w-full" size="lg" disabled={isLoading || !!error}>
-                    Generate Quote
+                  {quoteError && (
+                    <p className="text-sm text-destructive">{quoteError}</p>
+                  )}
+                  <Button onClick={handleGenerateQuote} className="w-full" size="lg" disabled={isLoading || !!error || quoteLoading || !resolved?.snapshotId}>
+                    {quoteLoading ? 'Creating quote...' : 'Generate Quote'}
                   </Button>
                   <Button
                     variant="outline"

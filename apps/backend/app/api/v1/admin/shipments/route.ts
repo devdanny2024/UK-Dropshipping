@@ -7,6 +7,26 @@ import { createOrderEvent } from '../../../../../lib/events';
 import { getQueues } from '../../../../../lib/queue';
 import { requireAdmin } from '../../../../../lib/auth';
 
+export async function GET(request: NextRequest) {
+  const auth = requireAdmin(request);
+  if (auth) return auth;
+
+  const shipments = await prisma.shipment.findMany({
+    orderBy: { createdAt: 'desc' }
+  });
+
+  return ok(
+    shipments.map((s) => ({
+      id: s.id,
+      orderId: s.orderId,
+      carrier: s.carrier,
+      trackingNumber: s.trackingNumber,
+      status: s.status,
+      createdAt: s.createdAt.toISOString()
+    }))
+  );
+}
+
 export async function POST(request: NextRequest) {
   const auth = requireAdmin(request);
   if (auth) return auth;

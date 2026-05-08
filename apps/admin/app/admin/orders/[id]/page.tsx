@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, ExternalLink, User, Package, CreditCard } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
@@ -10,17 +10,72 @@ import { Separator } from '@/app/components/ui/separator';
 import { StatusBadge } from '@/app/components/StatusBadge';
 import { Timeline } from '@/app/components/Timeline';
 import { Badge } from '@/app/components/ui/badge';
-import { mockOrders, mockShipments } from '@/data/mockData';
+
+type OrderDetail = {
+  id: string;
+  status: string;
+  total: number;
+  currency: string;
+  createdAt: string;
+  updatedAt: string;
+  user: { name: string | null; email: string; phone: string | null } | null;
+  address: {
+    line1: string; line2?: string | null; city: string;
+    postalCode: string; country: string; phone?: string | null;
+  } | null;
+  items: Array<{
+    id: string; qty: number; size: string; color: string;
+    unitPrice: number; total: number;
+    productSnapshot: {
+      id: string; title: string; url: string; imageUrl: string | null;
+      price: number; currency: string;
+    } | null;
+  }>;
+  events: Array<{ id: string; type: string; message: string; createdAt: string }>;
+  shipments: Array<{ id: string; carrier: string; trackingNumber: string; status: string; createdAt: string }>;
+  payments: Array<{ id: string; paymentRef: string; provider: string; amount: number; currency: string; status: string; paidAt: string | null }>;
+  attempts: Array<{ id: string; status: string; note: string | null; createdAt: string }>;
+};
 
 export default function AdminOrderDetailPage() {
   const router = useRouter();
   const params = useParams();
   const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const order = useMemo(() => {
-    const found = mockOrders.find((item) => item.id === rawId);
-    return found ?? mockOrders[0];
+  useEffect(() => {
+    if (!rawId) return;
+    fetch(`/api/proxy/v1/admin/orders/${rawId}`, { credentials: 'include' })
+      .then((res) => res.json())
+      .then((payload) => {
+        if (payload?.ok) setOrder(payload.data);
+        else setError(payload?.error?.message ?? 'Order not found');
+      })
+      .catch(() => setError('Failed to load order'))
+      .finally(() => setLoading(false));
   }, [rawId]);
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <p className="text-muted-foreground">Loading order...</p>
+      </div>
+    );
+  }
+
+  if (error || !order) {
+    return (
+      <div className="p-8 space-y-4">
+        <p className="text-destructive">{error ?? 'Order not found'}</p>
+        <Button variant="outline" onClick={() => router.push('/admin/orders')}>Back to Orders</Button>
+      </div>
+    );
+  }
+
+  const firstItem = order.items[0];
+  const productSnapshot = firstItem?.productSnapshot;
 
   return (
     <div className="p-8 space-y-6">
@@ -36,12 +91,7 @@ export default function AdminOrderDetailPage() {
           <h1 className="text-3xl font-semibold text-foreground">{order.id}</h1>
           <p className="text-muted-foreground mt-2">Order details and management</p>
         </div>
-        <div className="flex items-center gap-3">
-          <StatusBadge status={order.status} />
-          <Badge variant={order.purchaseMode === 'AUTO' ? 'default' : 'secondary'}>
-            {order.purchaseMode}
-          </Badge>
-        </div>
+        <StatusBadge status={order.status} />
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
@@ -65,16 +115,18 @@ export default function AdminOrderDetailPage() {
               <CardContent className="space-y-3">
                 <div>
                   <div className="text-sm text-muted-foreground">Name</div>
-                  <div className="font-medium text-foreground">{order.customerName}</div>
+                  <div className="font-medium">{order.user?.name ?? 'Guest'}</div>
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground">Email</div>
-                  <div className="text-sm text-foreground">{order.customerEmail}</div>
+                  <div className="text-sm">{order.user?.email ?? '—'}</div>
                 </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Customer ID</div>
-                  <div className="text-sm font-mono text-foreground">{order.customerId}</div>
-                </div>
+                {order.user?.phone && (
+                  <div>
+                    <div className="text-sm text-muted-foreground">Phone</div>
+                    <div className="text-sm">{order.user.phone}</div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -86,26 +138,32 @@ export default function AdminOrderDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div>
-                  <div className="text-sm text-muted-foreground">Store</div>
-                  <div className="font-medium text-foreground">{order.storeDomain}</div>
-                </div>
-                {order.size && (
+                {productSnapshot && (
                   <div>
-                    <div className="text-sm text-muted-foreground">Size</div>
-                    <div className="text-sm text-foreground">{order.size}</div>
+                    <div className="text-sm text-muted-foreground">Title</div>
+                    <div className="font-medium">{productSnapshot.title}</div>
                   </div>
                 )}
-                {order.color && (
-                  <div>
-                    <div className="text-sm text-muted-foreground">Color</div>
-                    <div className="text-sm text-foreground">{order.color}</div>
-                  </div>
+                {firstItem && (
+                  <>
+                    <div>
+                      <div className="text-sm text-muted-foreground">Variant</div>
+                      <div className="text-sm">{firstItem.size} / {firstItem.color} × {firstItem.qty}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-muted-foreground">Unit price</div>
+                      <div className="text-sm">{order.currency} {firstItem.unitPrice.toFixed(2)}</div>
+                    </div>
+                  </>
                 )}
-                <div>
-                  <div className="text-sm text-muted-foreground">Quantity</div>
-                  <div className="text-sm text-foreground">{order.quantity}</div>
-                </div>
+                {productSnapshot?.url && (
+                  <Button variant="outline" size="sm" className="gap-2 w-full" asChild>
+                    <a href={productSnapshot.url} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-3 w-3" />
+                      View product
+                    </a>
+                  </Button>
+                )}
               </CardContent>
             </Card>
 
@@ -117,226 +175,152 @@ export default function AdminOrderDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                {order.payments[0] && (
+                  <>
+                    <div>
+                      <div className="text-sm text-muted-foreground">Status</div>
+                      <StatusBadge status={order.payments[0].status} />
+                    </div>
+                    <div>
+                      <div className="text-sm text-muted-foreground">Provider</div>
+                      <div className="text-sm font-mono">{order.payments[0].provider}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-muted-foreground">Ref</div>
+                      <div className="text-xs font-mono truncate">{order.payments[0].paymentRef}</div>
+                    </div>
+                  </>
+                )}
                 <div>
-                  <div className="text-sm text-muted-foreground">Status</div>
-                  <StatusBadge status={order.paymentStatus} />
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Total Amount</div>
-                  <div className="text-2xl font-bold text-foreground">
-                    {order.currency} {order.total.toFixed(2)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Payment Date</div>
-                  <div className="text-sm text-foreground">
-                    {new Date(order.createdAt).toLocaleString('en-GB')}
-                  </div>
+                  <div className="text-sm text-muted-foreground">Total</div>
+                  <div className="text-2xl font-bold">{order.currency} {order.total.toFixed(2)}</div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Quote Breakdown</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Item Price</span>
-                  <span className="font-medium">
-                    {order.currency} {order.itemPrice.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Service Fee</span>
-                  <span className="font-medium">
-                    {order.currency} {order.serviceFee.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">UK Delivery</span>
-                  <span className="font-medium">
-                    {order.ukDelivery === 0 ? 'Free' : `${order.currency} ${order.ukDelivery.toFixed(2)}`}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">International Shipping</span>
-                  <span className="font-medium">
-                    {order.currency} {order.internationalShipping.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Duties Buffer</span>
-                  <span className="font-medium">
-                    {order.currency} {order.dutiesBuffer.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">FX Conversion</span>
-                  <span className="font-medium">
-                    {order.currency} {order.fxConversion.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Payment Fee</span>
-                  <span className="font-medium">
-                    {order.currency} {order.paymentFee.toFixed(2)}
-                  </span>
-                </div>
-                <Separator />
-                <div className="flex justify-between text-lg">
-                  <span className="font-semibold">Total</span>
-                  <span className="font-bold">
-                    {order.currency} {order.total.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {order.address && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Delivery Address</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm">
+                  {order.address.line1}
+                  {order.address.line2 ? `, ${order.address.line2}` : ''}
+                  {`, ${order.address.city}, ${order.address.postalCode}, ${order.address.country}`}
+                </p>
+                {order.address.phone && (
+                  <p className="text-sm text-muted-foreground mt-1">{order.address.phone}</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
-        <TabsContent value="product" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Product Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-6 flex-col lg:flex-row">
-                <img
-                  src={order.productImage}
-                  alt={order.productName}
-                  className="w-48 h-48 object-cover rounded-lg"
-                />
-                <div className="flex-1 space-y-4">
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Product Name</div>
-                    <div className="font-medium text-foreground text-lg">{order.productName}</div>
+        <TabsContent value="product">
+          {productSnapshot ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Product Snapshot</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {productSnapshot.imageUrl && (
+                  <img src={productSnapshot.imageUrl} alt={productSnapshot.title} className="max-h-64 object-contain rounded-lg" />
+                )}
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Title</span>
+                    <span className="font-medium">{productSnapshot.title}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Price at snapshot</span>
+                    <span>{productSnapshot.currency} {productSnapshot.price.toFixed(2)}</span>
+                  </div>
+                  <Separator />
                   <div>
-                    <div className="text-sm text-muted-foreground mb-1">Product URL</div>
-                    <a
-                      href={order.productUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline flex items-center gap-2"
-                    >
-                      {order.productUrl}
-                      <ExternalLink className="h-4 w-4" />
+                    <span className="text-muted-foreground">Source URL</span>
+                    <a href={productSnapshot.url} target="_blank" rel="noopener noreferrer"
+                      className="block mt-1 text-xs font-mono text-blue-600 underline truncate">
+                      {productSnapshot.url}
                     </a>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    {order.size && (
-                      <div>
-                        <div className="text-sm text-muted-foreground mb-1">Size</div>
-                        <div className="text-sm text-foreground">{order.size}</div>
-                      </div>
-                    )}
-                    {order.color && (
-                      <div>
-                        <div className="text-sm text-muted-foreground mb-1">Color</div>
-                        <div className="text-sm text-foreground">{order.color}</div>
-                      </div>
-                    )}
-                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">No product snapshot</CardContent>
+            </Card>
+          )}
         </TabsContent>
 
-        <TabsContent value="timeline" className="space-y-6">
+        <TabsContent value="timeline">
           <Card>
             <CardHeader>
               <CardTitle>Order Timeline</CardTitle>
             </CardHeader>
             <CardContent>
-              <Timeline events={order.timeline} />
+              {order.events.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No events recorded.</p>
+              ) : (
+                <Timeline events={order.events} />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="attempts" className="space-y-6">
+        <TabsContent value="attempts">
           <Card>
             <CardHeader>
               <CardTitle>Purchase Attempts</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {order.purchaseMode === 'AUTO' ? (
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <Badge>AUTO</Badge>
-                      <StatusBadge
-                        status={
-                          order.status === 'purchased' ||
-                          order.status === 'inbound_uk' ||
-                          order.status === 'received_uk' ||
-                          order.status === 'shipped_nigeria' ||
-                          order.status === 'out_for_delivery' ||
-                          order.status === 'delivered'
-                            ? 'purchased'
-                            : 'purchasing'
-                        }
-                      />
+              {order.attempts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No purchase attempts yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {order.attempts.map((attempt) => (
+                    <div key={attempt.id} className="rounded-md border border-border p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-sm">{attempt.id}</span>
+                        <Badge variant={attempt.status === 'SUCCESS' ? 'default' : attempt.status === 'FAILED' ? 'destructive' : 'secondary'}>
+                          {attempt.status}
+                        </Badge>
+                      </div>
+                      {attempt.note && <p className="text-sm text-muted-foreground">{attempt.note}</p>}
+                      <p className="text-xs text-muted-foreground">{new Date(attempt.createdAt).toLocaleString('en-GB')}</p>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      <p>Automated purchase attempt via {order.storeDomain} adapter</p>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Started:{' '}
-                        {new Date(
-                          order.timeline.find((item) => item.status === 'Purchasing')?.timestamp ||
-                            order.createdAt
-                        ).toLocaleString('en-GB')}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="border rounded-lg p-4 bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900">
-                    <div className="flex items-center justify-between mb-3">
-                      <Badge variant="secondary">MANUAL</Badge>
-                      {order.assignedStaff && (
-                        <span className="text-sm text-muted-foreground">
-                          Assigned to: {order.assignedStaff}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      <p>Manual purchase required</p>
-                      {order.actionReason && (
-                        <p className="mt-2 text-amber-900 dark:text-amber-200 font-medium">
-                          Reason: {order.actionReason}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="shipments" className="space-y-6">
+        <TabsContent value="shipments">
           <Card>
             <CardHeader>
-              <CardTitle>Shipment Records</CardTitle>
+              <CardTitle>Shipments</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {mockShipments.filter((shipment) => shipment.orderId === order.id).length === 0 ? (
-                <div className="text-sm text-muted-foreground">No shipment updates yet.</div>
+            <CardContent>
+              {order.shipments.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No shipments created yet.</p>
               ) : (
-                mockShipments
-                  .filter((shipment) => shipment.orderId === order.id)
-                  .map((shipment) => (
-                    <div key={shipment.id} className="flex items-center justify-between rounded-lg border border-border p-3">
-                      <div>
-                        <div className="font-medium">{shipment.carrier}</div>
-                        <div className="text-sm text-muted-foreground">{shipment.trackingNumber}</div>
+                <div className="space-y-3">
+                  {order.shipments.map((shipment) => (
+                    <div key={shipment.id} className="rounded-md border border-border p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium">{shipment.carrier}</div>
+                          <div className="font-mono text-sm text-muted-foreground">{shipment.trackingNumber}</div>
+                        </div>
+                        <StatusBadge status={shipment.status} />
                       </div>
-                      <Badge variant="secondary">{shipment.status}</Badge>
+                      <p className="text-xs text-muted-foreground">{new Date(shipment.createdAt).toLocaleString('en-GB')}</p>
                     </div>
-                  ))
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>

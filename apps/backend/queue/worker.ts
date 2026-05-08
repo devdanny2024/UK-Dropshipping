@@ -40,7 +40,6 @@ new Worker(
       return { ok: true };
     } catch (error) {
       console.error('Failed to resolve product', { snapshotId, url, error });
-      // Leave the original snapshot data in place so the client still has a record.
       return { ok: false, error: (error as Error).message };
     }
   },
@@ -50,8 +49,32 @@ new Worker(
 new Worker(
   'purchaseAttempt',
   async (job) => {
-    console.log('Purchase attempt', job.data);
-    return { ok: true };
+    const { orderId, attemptId } = job.data as { orderId: string; attemptId: string };
+
+    try {
+      await prisma.purchaseAttempt.update({
+        where: { id: attemptId },
+        data: { status: 'RUNNING' }
+      });
+
+      await prisma.order.update({
+        where: { id: orderId },
+        data: { status: 'AWAITING_PURCHASE' }
+      });
+
+      // Placeholder: real purchase automation goes here.
+      // For now, mark queued so admin can handle manually.
+      console.log('Purchase attempt running — awaiting manual purchase', { orderId, attemptId });
+
+      return { ok: true };
+    } catch (error) {
+      console.error('Purchase attempt failed', { orderId, attemptId, error });
+      await prisma.purchaseAttempt.update({
+        where: { id: attemptId },
+        data: { status: 'FAILED' }
+      }).catch(() => undefined);
+      throw error;
+    }
   },
   { connection }
 );
@@ -59,8 +82,16 @@ new Worker(
 new Worker(
   'trackShipment',
   async (job) => {
-    console.log('Track shipment', job.data);
-    return { ok: true };
+    const { orderId, shipmentId } = job.data as { orderId: string; shipmentId: string };
+
+    try {
+      // Placeholder: real carrier API polling goes here.
+      console.log('Tracking shipment', { orderId, shipmentId });
+      return { ok: true };
+    } catch (error) {
+      console.error('Track shipment failed', { orderId, shipmentId, error });
+      throw error;
+    }
   },
   { connection }
 );
