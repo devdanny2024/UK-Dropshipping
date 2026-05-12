@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     where: { email: data.email.toLowerCase() }
   });
 
-  if (!user || !verifyPassword(data.password, user.passwordHash)) {
+  if (!user || !user.passwordHash || !verifyPassword(data.password, user.passwordHash)) {
     return fail('INVALID_CREDENTIALS', 'Email or password is incorrect', 401);
   }
 
