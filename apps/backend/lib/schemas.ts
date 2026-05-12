@@ -9,7 +9,8 @@ export const quoteSchema = z.object({
   size: z.string(),
   color: z.string(),
   qty: z.number().int().min(1),
-  addressId: z.string()
+  addressId: z.string(),
+  overridePrice: z.number().positive().optional()
 });
 
 export const paymentWebhookSchema = z.object({

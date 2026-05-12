@@ -35,7 +35,8 @@ export async function POST(request: NextRequest) {
     }
   });
 
-  const subtotal = snapshot.price * data.qty;
+  const unitPrice = data.overridePrice ?? snapshot.price;
+  const subtotal = unitPrice * data.qty;
   const shipping = 9.5;
   const tax = subtotal * 0.06;
   const platformFeePercent = await getPlatformFeePercent();

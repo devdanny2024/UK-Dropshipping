@@ -30,6 +30,7 @@ function PreviewContent() {
   } | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [manualPrice, setManualPrice] = useState<string>('');
   const { addItem } = useCart();
 
   const hasUrl = Boolean(params.get('url'));
@@ -43,15 +44,20 @@ function PreviewContent() {
       url = 'https://example.com/product';
     }
     const fallbackImage = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800';
+    const detectedPrice = resolved?.price ?? null;
+    const effectivePrice = detectedPrice && detectedPrice > 0
+      ? detectedPrice
+      : (parseFloat(manualPrice) || null);
     return {
       name: resolved?.title ?? 'Sample Product',
-      price: resolved?.price ?? 99.99,
+      price: effectivePrice,
+      priceDetected: Boolean(detectedPrice && detectedPrice > 0),
       currency: resolved?.currency ?? 'GBP',
       image: resolved?.imageUrl ?? fallbackImage,
       store,
       url
     };
-  }, [params, resolved]);
+  }, [params, resolved, manualPrice]);
 
   const handleGenerateQuote = async () => {
     if (!resolved?.snapshotId) return;
@@ -67,7 +73,8 @@ function PreviewContent() {
           size,
           color,
           qty: quantity,
-          addressId: 'placeholder'
+          addressId: 'placeholder',
+          ...(product.price && !product.priceDetected ? { overridePrice: product.price } : {})
         })
       });
       const payload = await res.json();
@@ -206,19 +213,39 @@ function PreviewContent() {
                   </div>
                 )}
                 <div>
-                  <div className="text-3xl font-bold text-foreground">
-                    {product.currency} {product.price.toFixed(2)}
-                  </div>
-                  <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    Price last checked at{' '}
-                    {new Date().toLocaleString('en-GB', {
-                      day: '2-digit',
-                      month: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </div>
+                  {product.priceDetected ? (
+                    <>
+                      <div className="text-3xl font-bold text-foreground">
+                        {product.currency} {product.price!.toFixed(2)}
+                      </div>
+                      <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        Price last checked at{' '}
+                        {new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                        Price could not be auto-detected. Please enter the price from the product page.
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{product.currency}</span>
+                        <Input
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          placeholder="e.g. 35.00"
+                          value={manualPrice}
+                          onChange={(e) => setManualPrice(e.target.value)}
+                          className="w-36"
+                        />
+                        {product.price && (
+                          <span className="text-sm text-muted-foreground">= {product.currency} {product.price.toFixed(2)}</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-4">
@@ -274,19 +301,19 @@ function PreviewContent() {
                   {quoteError && (
                     <p className="text-sm text-destructive">{quoteError}</p>
                   )}
-                  <Button onClick={handleGenerateQuote} className="w-full" size="lg" disabled={isLoading || !!error || quoteLoading || !resolved?.snapshotId}>
+                  <Button onClick={handleGenerateQuote} className="w-full" size="lg" disabled={isLoading || !!error || quoteLoading || !resolved?.snapshotId || !product.price}>
                     {quoteLoading ? 'Creating quote...' : 'Generate Quote'}
                   </Button>
                   <Button
                     variant="outline"
                     className="w-full gap-2"
-                    disabled={isLoading || !!error}
+                    disabled={isLoading || !!error || !product.price}
                     onClick={() =>
                       addItem({
                         name: product.name,
                         slug: undefined,
                         imageUrl: product.image,
-                        priceGBP: product.price,
+                        priceGBP: product.price ?? undefined,
                         quantity,
                         externalUrl: product.url,
                         productCode: undefined,
