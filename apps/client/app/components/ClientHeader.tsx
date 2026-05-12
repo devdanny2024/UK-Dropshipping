@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Menu, Package, Store, User, ShoppingBag, ShoppingCart, ChevronDown } from 'lucide-react';
+import { Menu, Package, Store, User, ShoppingBag, ShoppingCart } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { ThemeToggle } from '@/app/components/theme-toggle';
 import { useCart } from '@/app/components/cart/use-cart';
@@ -14,12 +14,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/app/components/ui/sheet';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/app/components/ui/dropdown-menu';
 
 const CURRENCIES = ['GBP', 'USD', 'NGN'] as const;
 type Currency = typeof CURRENCIES[number];
@@ -37,20 +31,22 @@ function CurrencyToggle() {
   };
   const FLAG: Record<Currency, string> = { GBP: '🇬🇧', USD: '🇺🇸', NGN: '🇳🇬' };
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1 h-8 px-2 text-xs font-semibold">
-          {FLAG[selected]} {selected} <ChevronDown className="h-3 w-3" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {CURRENCIES.map((c) => (
-          <DropdownMenuItem key={c} onClick={() => choose(c)} className={selected === c ? 'font-semibold' : ''}>
-            {FLAG[c]} {c}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center rounded-md border border-border overflow-hidden">
+      {CURRENCIES.map((c) => (
+        <button
+          key={c}
+          type="button"
+          onClick={() => choose(c)}
+          className={`px-2 py-1 text-xs font-semibold transition-colors ${
+            selected === c
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-background text-foreground hover:bg-muted'
+          }`}
+        >
+          {FLAG[c]} {c}
+        </button>
+      ))}
+    </div>
   );
 }
 

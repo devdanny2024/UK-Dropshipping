@@ -18,7 +18,7 @@ type Adapter = {
   notes?: string | null;
 };
 
-const apiBase = '/api/proxy';
+const apiBase = '/api/proxy/v1';
 
 export default function AdminAdaptersPage() {
   const [adapters, setAdapters] = useState<Adapter[]>([]);
