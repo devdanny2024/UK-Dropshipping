@@ -31,9 +31,15 @@ export default function AdminSettingsPage() {
   const [feeSaving, setFeeSaving] = useState(false);
   const [feeMsg, setFeeMsg] = useState<string | null>(null);
 
+  const [doorFee, setDoorFee] = useState('15');
+  const [pickupFee, setPickupFee] = useState('0');
+  const [deliverySaving, setDeliverySaving] = useState(false);
+  const [deliveryMsg, setDeliveryMsg] = useState<string | null>(null);
+
   useEffect(() => {
     loadFx();
     loadFee();
+    loadDeliveryFees();
   }, []);
 
   async function loadFx() {
@@ -82,6 +88,38 @@ export default function AdminSettingsPage() {
       await loadFx();
     } catch { /* noop */ }
     finally { setFxSaving(null); }
+  }
+
+  async function loadDeliveryFees() {
+    try {
+      const res = await fetch('/api/proxy/v1/checkout/fees');
+      const payload = await res.json();
+      if (payload?.ok) {
+        setDoorFee(String(payload.data?.doorFee ?? '15'));
+        setPickupFee(String(payload.data?.pickupFee ?? '0'));
+      }
+    } catch { /* noop */ }
+  }
+
+  async function saveDeliveryFees() {
+    setDeliverySaving(true);
+    setDeliveryMsg(null);
+    try {
+      await fetch('/api/proxy/v1/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ key: 'delivery_door_fee_gbp', value: doorFee })
+      });
+      await fetch('/api/proxy/v1/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ key: 'delivery_pickup_fee_gbp', value: pickupFee })
+      });
+      setDeliveryMsg('Delivery fees saved');
+    } catch { setDeliveryMsg('Error saving'); }
+    finally { setDeliverySaving(false); }
   }
 
   async function saveFee() {
@@ -141,20 +179,39 @@ export default function AdminSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Truck className="h-5 w-5" />
-              Logistics Defaults
+              Delivery Fees (GBP)
             </CardTitle>
-            <CardDescription>Warehouse and carrier preferences</CardDescription>
+            <CardDescription>Charged at checkout — set 0 for free</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="warehouse">Default UK Warehouse</Label>
-              <Input id="warehouse" defaultValue="London Hub" />
+              <Label htmlFor="doorFee">Door Delivery Fee (£)</Label>
+              <Input
+                id="doorFee"
+                type="number"
+                min={0}
+                step={0.5}
+                value={doorFee}
+                onChange={(e) => setDoorFee(e.target.value)}
+                placeholder="15"
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="carrier">Preferred Carrier</Label>
-              <Input id="carrier" defaultValue="DHL Express" />
+              <Label htmlFor="pickupFee">Pickup Fee (£)</Label>
+              <Input
+                id="pickupFee"
+                type="number"
+                min={0}
+                step={0.5}
+                value={pickupFee}
+                onChange={(e) => setPickupFee(e.target.value)}
+                placeholder="0"
+              />
             </div>
-            <Button className="w-full">Save Logistics</Button>
+            {deliveryMsg && <p className="text-sm text-muted-foreground">{deliveryMsg}</p>}
+            <Button className="w-full" onClick={saveDeliveryFees} disabled={deliverySaving}>
+              {deliverySaving ? 'Saving...' : 'Save Delivery Fees'}
+            </Button>
           </CardContent>
         </Card>
       </div>

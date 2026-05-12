@@ -118,6 +118,34 @@ export const addressSchema = z.object({
   isDefault: z.boolean().optional()
 });
 
+export const checkoutSchema = z.object({
+  items: z.array(z.object({
+    name: z.string().min(1),
+    imageUrl: z.string().url().optional(),
+    priceGBP: z.number().nonnegative(),
+    quantity: z.number().int().min(1),
+    externalUrl: z.string().url().optional(),
+    productCode: z.string().optional(),
+    categoryName: z.string().optional(),
+  })).min(1),
+  address: z.object({
+    recipientName: z.string().min(2),
+    phone: z.string().min(6),
+    line1: z.string().min(3),
+    line2: z.string().optional(),
+    city: z.string().min(2),
+    state: z.string().optional(),
+    postalCode: z.string().optional(),
+    country: z.string().default('Nigeria'),
+  }),
+  deliveryType: z.enum(['door', 'pickup']).default('door'),
+  notes: z.string().optional(),
+});
+
+export const simulatePaymentSchema = z.object({
+  orderId: z.string().min(1),
+});
+
 export const categorySchema = z.object({
   name: z.string().min(2),
   slug: z.string().min(2).optional(),

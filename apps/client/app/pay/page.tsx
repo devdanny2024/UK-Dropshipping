@@ -112,20 +112,28 @@ function ClientPaymentContent() {
   };
 
   const simulatePayment = async () => {
+    if (!orderId) {
+      setError('No order ID found. Please go through checkout first.');
+      return;
+    }
     setLoading('simulate');
     setError(null);
-    await new Promise((r) => setTimeout(r, 2200));
-    // Save simulated order to localStorage for orders page
-    const simOrder = {
-      id: `UK2ME-${Date.now().toString(36).toUpperCase()}`,
-      status: 'paid',
-      createdAt: new Date().toISOString(),
-      total: gbpTotal,
-      simulated: true,
-    };
-    const existing = JSON.parse(localStorage.getItem('uk2me-sim-orders') ?? '[]');
-    existing.unshift(simOrder);
-    localStorage.setItem('uk2me-sim-orders', JSON.stringify(existing.slice(0, 20)));
+    try {
+      const res = await fetch('/api/proxy/v1/payments/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ orderId }),
+      });
+      const payload = await res.json();
+      if (!res.ok || !payload.ok) {
+        throw new Error(payload?.error?.message ?? 'Simulation failed. Try again.');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Simulation failed.');
+      setLoading(null);
+      return;
+    }
     setLoading(null);
     setSuccess(true);
   };

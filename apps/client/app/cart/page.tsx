@@ -21,7 +21,7 @@ export default function CartPage() {
   const startCheckout = () => {
     const intent = { currency, subtotal: total, items, notes, createdAt: new Date().toISOString() };
     localStorage.setItem('uk2me-checkout-intent', JSON.stringify(intent));
-    router.push('/pay');
+    router.push('/checkout');
   };
 
   const submitQuote = async () => {
