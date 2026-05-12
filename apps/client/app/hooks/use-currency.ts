@@ -1,53 +1,69 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-const CURRENCIES = ['GBP', 'USD', 'NGN'] as const;
-type Currency = typeof CURRENCIES[number];
-
+export const CURRENCIES = ['GBP', 'USD', 'NGN'] as const;
+export type Currency = typeof CURRENCIES[number];
 type Rates = Partial<Record<Currency, number>>;
 
 const SYMBOLS: Record<Currency, string> = { GBP: '£', USD: '$', NGN: '₦' };
 
-let cachedRates: Rates = { GBP: 1 };
-let ratePromise: Promise<Rates> | null = null;
+type CurrencyState = {
+  currency: Currency;
+  rates: Rates;
+  ratesLoaded: boolean;
+  setCurrency: (c: Currency) => void;
+  setRates: (r: Rates) => void;
+  markRatesLoaded: () => void;
+};
 
-function fetchRates(): Promise<Rates> {
-  if (ratePromise) return ratePromise;
-  ratePromise = fetch('/api/proxy/v1/fx?base=GBP&symbols=USD,NGN')
-    .then((r) => r.json())
-    .then((payload) => {
-      if (payload?.ok && payload.data?.rates) {
-        cachedRates = { GBP: 1, ...payload.data.rates };
-      }
-      return cachedRates;
-    })
-    .catch(() => cachedRates);
-  return ratePromise;
-}
+export const useCurrencyStore = create<CurrencyState>()(
+  persist(
+    (set) => ({
+      currency: 'GBP',
+      rates: { GBP: 1 },
+      ratesLoaded: false,
+      setCurrency: (currency) => set({ currency }),
+      setRates: (rates) => set({ rates }),
+      markRatesLoaded: () => set({ ratesLoaded: true }),
+    }),
+    {
+      name: 'uk2me-currency',
+      partialize: (s) => ({ currency: s.currency }),
+    }
+  )
+);
 
 export function useCurrency() {
-  const [currency, setCurrency] = useState<Currency>('GBP');
-  const [rates, setRates] = useState<Rates>({ GBP: 1 });
+  const currency = useCurrencyStore((s) => s.currency);
+  const rates = useCurrencyStore((s) => s.rates);
+  const ratesLoaded = useCurrencyStore((s) => s.ratesLoaded);
+  const setRates = useCurrencyStore((s) => s.setRates);
+  const markRatesLoaded = useCurrencyStore((s) => s.markRatesLoaded);
 
   useEffect(() => {
-    const saved = localStorage.getItem('uk2me-display-currency') as Currency | null;
-    if (saved && (CURRENCIES as readonly string[]).includes(saved)) setCurrency(saved);
-    void fetchRates().then(setRates);
-
-    const handler = (e: Event) => {
-      const c = (e as CustomEvent<Currency>).detail;
-      if ((CURRENCIES as readonly string[]).includes(c)) setCurrency(c);
-    };
-    window.addEventListener('uk2me-currency-change', handler);
-    return () => window.removeEventListener('uk2me-currency-change', handler);
-  }, []);
+    if (ratesLoaded) return;
+    fetch('/api/proxy/v1/fx?base=GBP&symbols=USD,NGN')
+      .then((r) => r.json())
+      .then((payload) => {
+        if (payload?.ok && payload.data?.rates) {
+          setRates({ GBP: 1, ...payload.data.rates });
+        }
+        markRatesLoaded();
+      })
+      .catch(() => markRatesLoaded());
+  }, [ratesLoaded, setRates, markRatesLoaded]);
 
   const formatPrice = (priceGBP: number | null | undefined): string => {
     if (priceGBP == null) return '';
     const rate = rates[currency] ?? 1;
     const converted = priceGBP * rate;
-    return `${SYMBOLS[currency]}${converted.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `${SYMBOLS[currency]}${converted.toLocaleString('en-GB', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
   };
 
   return { currency, formatPrice };

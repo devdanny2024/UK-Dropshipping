@@ -7,6 +7,7 @@ import { Menu, Package, Store, User, ShoppingBag, ShoppingCart } from 'lucide-re
 import { Button } from '@/app/components/ui/button';
 import { ThemeToggle } from '@/app/components/theme-toggle';
 import { useCart } from '@/app/components/cart/use-cart';
+import { CURRENCIES, useCurrencyStore } from '@/app/hooks/use-currency';
 import {
   Sheet,
   SheetContent,
@@ -15,30 +16,20 @@ import {
   SheetTrigger,
 } from '@/app/components/ui/sheet';
 
-const CURRENCIES = ['GBP', 'USD', 'NGN'] as const;
-type Currency = typeof CURRENCIES[number];
+const FLAG: Record<string, string> = { GBP: '🇬🇧', USD: '🇺🇸', NGN: '🇳🇬' };
 
 function CurrencyToggle() {
-  const [selected, setSelected] = useState<Currency>('GBP');
-  useEffect(() => {
-    const saved = localStorage.getItem('uk2me-display-currency') as Currency | null;
-    if (saved && CURRENCIES.includes(saved)) setSelected(saved);
-  }, []);
-  const choose = (c: Currency) => {
-    setSelected(c);
-    localStorage.setItem('uk2me-display-currency', c);
-    window.dispatchEvent(new CustomEvent('uk2me-currency-change', { detail: c }));
-  };
-  const FLAG: Record<Currency, string> = { GBP: '🇬🇧', USD: '🇺🇸', NGN: '🇳🇬' };
+  const currency = useCurrencyStore((s) => s.currency);
+  const setCurrency = useCurrencyStore((s) => s.setCurrency);
   return (
     <div className="flex items-center rounded-md border border-border overflow-hidden">
       {CURRENCIES.map((c) => (
         <button
           key={c}
           type="button"
-          onClick={() => choose(c)}
+          onClick={() => setCurrency(c)}
           className={`px-2 py-1 text-xs font-semibold transition-colors ${
-            selected === c
+            currency === c
               ? 'bg-primary text-primary-foreground'
               : 'bg-background text-foreground hover:bg-muted'
           }`}
