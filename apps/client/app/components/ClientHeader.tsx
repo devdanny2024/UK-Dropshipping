@@ -92,13 +92,16 @@ export function ClientHeader() {
   ];
 
   return (
-    <header className="border-b border-border bg-background">
-      <div className="container mx-auto px-4 py-4">
+    <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-md shadow-sm">
+      <div className="container mx-auto px-4 py-3.5">
         <div className="flex items-center justify-between">
           <Link className="flex items-center gap-2" href="/">
-            <Package className="h-6 w-6 text-foreground" />
-            <span className="text-lg font-semibold text-foreground sm:text-xl">
-              Uk2meonline
+            <div className="h-8 w-8 rounded-lg brand-gradient flex items-center justify-center shadow-sm">
+              <Package className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-lg font-bold sm:text-xl tracking-tight">
+              <span style={{ color: 'var(--brand-violet)' }}>UK</span>
+              <span style={{ color: 'var(--brand-amber)' }}>2ME</span>
             </span>
           </Link>
 

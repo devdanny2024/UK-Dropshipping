@@ -6,24 +6,27 @@ function layout(heading: string, bodyHtml: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0" /></head>
-<body style="margin:0;padding:0;background:#f0f4f8;font-family:'Segoe UI',Arial,sans-serif;">
+<body style="margin:0;padding:0;background:#F0EDF8;font-family:'Segoe UI',Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
 <tr><td align="center" style="padding:32px 16px;">
-<table cellpadding="0" cellspacing="0" role="presentation" style="width:100%;max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #dde3ec;">
+<table cellpadding="0" cellspacing="0" role="presentation" style="width:100%;max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #DDD6FE;">
 <tr>
-  <td style="background:linear-gradient(135deg,#1E3A5F 0%,#163354 100%);padding:28px 32px;">
-    <div style="color:#0EA5E9;font-size:10px;letter-spacing:4px;font-weight:700;text-transform:uppercase;">UK2ME Online</div>
-    <div style="color:#ffffff;font-size:22px;font-weight:700;margin-top:8px;line-height:1.3;">${heading}</div>
+  <td style="background:linear-gradient(135deg,#7C3AED 0%,#5B21B6 60%,#4C1D95 100%);padding:28px 32px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <div style="background:rgba(255,255,255,0.2);border-radius:8px;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;">📦</div>
+      <div style="color:#F59E0B;font-size:10px;letter-spacing:4px;font-weight:700;text-transform:uppercase;">UK2ME Online</div>
+    </div>
+    <div style="color:#ffffff;font-size:22px;font-weight:700;line-height:1.3;">${heading}</div>
   </td>
 </tr>
 <tr>
   <td style="padding:32px;color:#1f2937;font-size:15px;line-height:1.6;">${bodyHtml}</td>
 </tr>
 <tr>
-  <td style="background:#f8fafc;padding:20px 32px;border-top:1px solid #e2e8f0;">
-    <p style="margin:0;color:#94a3b8;font-size:12px;line-height:1.6;">
-      Sent by UK2ME Online &middot; Questions?
-      <a href="mailto:support@uk2meonline.com" style="color:#0EA5E9;text-decoration:none;">support@uk2meonline.com</a>
+  <td style="background:#F9F8FF;padding:20px 32px;border-top:1px solid #EDE9FE;">
+    <p style="margin:0;color:#9181C2;font-size:12px;line-height:1.6;">
+      Sent by <strong style="color:#7C3AED;">UK2ME Online</strong> &middot; Questions?
+      <a href="mailto:support@uk2meonline.com" style="color:#7C3AED;text-decoration:none;">support@uk2meonline.com</a>
     </p>
   </td>
 </tr>
@@ -35,14 +38,14 @@ function layout(heading: string, bodyHtml: string): string {
 }
 
 function cta(label: string, url: string): string {
-  return `<a href="${url}" style="display:inline-block;background:#0EA5E9;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px;margin-top:20px;">${label}</a>`;
+  return `<a href="${url}" style="display:inline-block;background:#7C3AED;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px;margin-top:20px;">${label}</a>`;
 }
 
 function orderRow(label: string, value: string): string {
   return `
     <tr>
       <td style="padding:12px 16px;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:1px;background:#f8fafc;">${label}</td>
-      <td style="padding:12px 16px;font-weight:600;color:#1E3A5F;font-size:14px;">${value}</td>
+      <td style="padding:12px 16px;font-weight:600;color:#5B21B6;font-size:14px;">${value}</td>
     </tr>`;
 }
 
