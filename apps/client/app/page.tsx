@@ -160,21 +160,23 @@ export default async function ClientHomePage() {
 
       {/* TRUST BAR */}
       <div className="border-y border-border bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-wrap items-center justify-center gap-6 md:gap-12 text-sm text-muted-foreground">
+        <div className="container mx-auto px-4 py-5">
+          <p className="text-center text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">Shop from UK&apos;s top brands</p>
+          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
             {[
-              ['🇬🇧', 'ASOS'],
-              ['🛍️', 'Nike'],
-              ['💊', 'Boots'],
-              ['📦', 'Amazon UK'],
-              ['👗', 'Zara'],
-              ['👠', 'Next'],
-              ['🎽', 'H&M'],
-              ['⌚', 'Argos'],
-            ].map(([emoji, name]) => (
-              <span key={name} className="flex items-center gap-1.5 font-medium opacity-60 hover:opacity-100 transition-opacity">
-                {emoji} {name}
-              </span>
+              { name: 'ASOS', logo: 'https://logo.clearbit.com/asos.com' },
+              { name: 'Nike', logo: 'https://logo.clearbit.com/nike.com' },
+              { name: 'Boots', logo: 'https://logo.clearbit.com/boots.com' },
+              { name: 'Amazon UK', logo: 'https://logo.clearbit.com/amazon.com' },
+              { name: 'Zara', logo: 'https://logo.clearbit.com/zara.com' },
+              { name: 'Next', logo: 'https://logo.clearbit.com/next.co.uk' },
+              { name: 'H&M', logo: 'https://logo.clearbit.com/hm.com' },
+              { name: 'Argos', logo: 'https://logo.clearbit.com/argos.co.uk' },
+            ].map(({ name, logo }) => (
+              <div key={name} className="flex flex-col items-center gap-1.5 opacity-50 hover:opacity-100 transition-opacity grayscale hover:grayscale-0">
+                <img src={logo} alt={name} className="h-8 w-auto object-contain" />
+                <span className="text-[10px] font-medium text-muted-foreground">{name}</span>
+              </div>
             ))}
           </div>
         </div>
