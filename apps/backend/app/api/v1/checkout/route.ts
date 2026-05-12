@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   const { data, error } = await parseBody(request, checkoutSchema);
   if (error) return error;
 
-  const doorFee = await getDeliveryFee(data.deliveryType);
+  const doorFee = await getDeliveryFee(data.deliveryType ?? 'door');
 
   const itemsTotal = data.items.reduce((sum, item) => sum + item.priceGBP * item.quantity, 0);
   const total = itemsTotal + doorFee;
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       city: data.address.city,
       state: data.address.state ?? null,
       postalCode: data.address.postalCode ?? 'N/A',
-      country: data.address.country,
+      country: data.address.country ?? 'Nigeria',
       phone: data.address.phone,
       type: 'SHIPPING',
     }
