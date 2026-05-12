@@ -164,17 +164,21 @@ export default async function ClientHomePage() {
           <p className="text-center text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">Shop from UK&apos;s top brands</p>
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
             {[
-              { name: 'ASOS', logo: 'https://logo.clearbit.com/asos.com' },
-              { name: 'Nike', logo: 'https://logo.clearbit.com/nike.com' },
-              { name: 'Boots', logo: 'https://logo.clearbit.com/boots.com' },
-              { name: 'Amazon UK', logo: 'https://logo.clearbit.com/amazon.com' },
-              { name: 'Zara', logo: 'https://logo.clearbit.com/zara.com' },
-              { name: 'Next', logo: 'https://logo.clearbit.com/next.co.uk' },
-              { name: 'H&M', logo: 'https://logo.clearbit.com/hm.com' },
-              { name: 'Argos', logo: 'https://logo.clearbit.com/argos.co.uk' },
-            ].map(({ name, logo }) => (
+              { name: 'ASOS', domain: 'asos.com' },
+              { name: 'Nike', domain: 'nike.com' },
+              { name: 'Boots', domain: 'boots.com' },
+              { name: 'Amazon UK', domain: 'amazon.co.uk' },
+              { name: 'Zara', domain: 'zara.com' },
+              { name: 'Next', domain: 'next.co.uk' },
+              { name: 'H&M', domain: 'hm.com' },
+              { name: 'Argos', domain: 'argos.co.uk' },
+            ].map(({ name, domain }) => (
               <div key={name} className="flex flex-col items-center gap-1.5 opacity-50 hover:opacity-100 transition-opacity grayscale hover:grayscale-0">
-                <img src={logo} alt={name} className="h-8 w-auto object-contain" />
+                <img
+                  src={`https://www.google.com/s2/favicons?sz=128&domain=${domain}`}
+                  alt={name}
+                  className="h-8 w-8 rounded object-contain"
+                />
                 <span className="text-[10px] font-medium text-muted-foreground">{name}</span>
               </div>
             ))}
