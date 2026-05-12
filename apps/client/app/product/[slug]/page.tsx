@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { ProductActions } from '@/app/components/ProductActions';
+import { PriceDisplay } from '@/app/components/PriceDisplay';
 import { fetchJsonSafe } from '@/app/lib/server-api';
 
 async function getProduct(slug: string) {
@@ -32,7 +33,7 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
             <CardContent className="space-y-4">
               {product.description && <p className="text-sm text-muted-foreground">{product.description}</p>}
               <div className="text-2xl font-semibold">
-                {product.priceGBP ? `GBP ${Number(product.priceGBP).toFixed(2)}` : 'Request quote'}
+                <PriceDisplay priceGBP={product.priceGBP} />
               </div>
               <ProductActions product={product} imageUrl={imageUrl} />
             </CardContent>

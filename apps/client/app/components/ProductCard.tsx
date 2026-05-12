@@ -5,6 +5,7 @@ import { ShoppingCart, Star, Eye } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { useCart } from '@/app/components/cart/use-cart';
+import { useCurrency } from '@/app/hooks/use-currency';
 
 type ProductCardProps = {
   product: {
@@ -28,6 +29,7 @@ function getRating(id: string) {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
+  const { formatPrice } = useCurrency();
   const imageUrl = product.images?.[0] ?? 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80&fit=crop';
   const rating = 4.5;
 
@@ -95,7 +97,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="flex items-center justify-between mt-auto pt-1">
           {product.priceGBP ? (
             <div>
-              <span className="text-lg font-bold">{product.currency ?? 'GBP'} {Number(product.priceGBP).toFixed(2)}</span>
+              <span className="text-lg font-bold">{formatPrice(product.priceGBP)}</span>
             </div>
           ) : (
             <span className="text-xs text-muted-foreground italic">Request quote</span>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, ShieldCheck, Truck, Package } from 'lucide-react';
 import { useCart } from '@/app/components/cart/use-cart';
+import { useCurrency } from '@/app/hooks/use-currency';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
@@ -11,7 +12,8 @@ import { Separator } from '@/app/components/ui/separator';
 import Link from 'next/link';
 
 export default function CartPage() {
-  const { items, currency, removeItem, updateQuantity, clear, subtotal } = useCart();
+  const { items, removeItem, updateQuantity, clear, subtotal } = useCart();
+  const { currency, formatPrice } = useCurrency();
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -109,7 +111,7 @@ export default function CartPage() {
                           </Button>
                         </div>
                         <div className="text-base font-bold" style={{ color: 'var(--brand-violet)' }}>
-                          {currency} {(item.priceGBP ?? 0).toFixed(2)}
+                          {formatPrice(item.priceGBP ?? 0)}
                         </div>
                         <div className="flex items-center gap-2">
                           <Button
@@ -131,7 +133,7 @@ export default function CartPage() {
                           </Button>
                           {item.quantity > 1 && (
                             <span className="text-xs text-muted-foreground ml-1">
-                              = {currency} {((item.priceGBP ?? 0) * item.quantity).toFixed(2)}
+                              = {formatPrice((item.priceGBP ?? 0) * item.quantity)}
                             </span>
                           )}
                         </div>
@@ -168,7 +170,7 @@ export default function CartPage() {
               <CardContent className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal ({items.length} items)</span>
-                  <span className="font-medium">{currency} {total.toFixed(2)}</span>
+                  <span className="font-medium">{formatPrice(total)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Shipping quote</span>
@@ -181,7 +183,7 @@ export default function CartPage() {
                 <Separator />
                 <div className="flex justify-between font-bold text-base">
                   <span>Estimated Total</span>
-                  <span style={{ color: 'var(--brand-violet)' }}>{currency} {total.toFixed(2)}+</span>
+                  <span style={{ color: 'var(--brand-violet)' }}>{formatPrice(total)}+</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground">Final cost includes shipping, service fee & duties</p>
 
