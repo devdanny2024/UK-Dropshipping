@@ -35,7 +35,11 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
       currency: data.currency ?? undefined,
       isActive: data.isActive ?? undefined,
       isFeatured: data.isFeatured ?? undefined,
-      featuredOrder: data.featuredOrder ?? undefined
+      featuredOrder: data.featuredOrder ?? undefined,
+      weightGrams: data.weightGrams ?? undefined,
+      chargeableWeightGrams: data.chargeableWeightGrams ?? undefined,
+      sizes: data.sizes ?? undefined,
+      gender: data.gender ?? undefined
     }
   });
 

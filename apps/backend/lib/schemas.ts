@@ -128,6 +128,7 @@ export const checkoutSchema = z.object({
     externalUrl: z.string().url().optional(),
     productCode: z.string().optional(),
     categoryName: z.string().optional(),
+    weightKg: z.number().nonnegative().optional(),
   })).min(1),
   address: z.object({
     recipientName: z.string().min(2),
@@ -153,7 +154,9 @@ export const categorySchema = z.object({
   description: z.string().optional(),
   imageUrl: z.string().url().optional(),
   isActive: z.boolean().optional(),
-  sortOrder: z.number().int().optional()
+  sortOrder: z.number().int().optional(),
+  defaultWeightGrams: z.number().int().positive().optional(),
+  defaultChargeableWeightGrams: z.number().int().positive().optional()
 });
 
 export const productSchema = z.object({
@@ -168,7 +171,24 @@ export const productSchema = z.object({
   currency: z.string().optional(),
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
-  featuredOrder: z.number().int().optional()
+  featuredOrder: z.number().int().optional(),
+  weightGrams: z.number().int().positive().optional(),
+  chargeableWeightGrams: z.number().int().positive().optional(),
+  sizes: z.array(z.string()).optional(),
+  gender: z.string().optional()
+});
+
+export const weightReferenceSchema = z.object({
+  category: z.string().min(2),
+  label: z.string().min(2),
+  actualWeightGrams: z.number().int().positive().optional(),
+  chargeableWeightGrams: z.number().int().positive(),
+  isNamedProduct: z.boolean().optional(),
+  notes: z.string().optional()
+});
+
+export const shippingRateSchema = z.object({
+  ratePerKgNgn: z.number().positive()
 });
 
 export const cartItemSchema = z.object({

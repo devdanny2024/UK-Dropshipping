@@ -29,7 +29,9 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
       description: data.description ?? undefined,
       imageUrl: data.imageUrl ?? undefined,
       isActive: data.isActive ?? undefined,
-      sortOrder: data.sortOrder ?? undefined
+      sortOrder: data.sortOrder ?? undefined,
+      defaultWeightGrams: data.defaultWeightGrams ?? undefined,
+      defaultChargeableWeightGrams: data.defaultChargeableWeightGrams ?? undefined
     }
   });
 

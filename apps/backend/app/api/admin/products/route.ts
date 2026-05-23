@@ -52,7 +52,11 @@ export async function POST(request: NextRequest) {
       currency: data.currency ?? 'GBP',
       isActive: data.isActive ?? true,
       isFeatured: data.isFeatured ?? false,
-      featuredOrder: data.featuredOrder ?? 0
+      featuredOrder: data.featuredOrder ?? 0,
+      weightGrams: data.weightGrams,
+      chargeableWeightGrams: data.chargeableWeightGrams,
+      sizes: data.sizes ?? undefined,
+      gender: data.gender
     }
   });
 

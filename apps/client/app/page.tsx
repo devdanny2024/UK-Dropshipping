@@ -39,13 +39,13 @@ const FALLBACK_PRODUCTS = [
   },
 ];
 
-const CATEGORIES = [
-  { name: 'Fashion', slug: 'fashion', image: 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=600&q=80&fit=crop', count: '2,400+ items' },
-  { name: 'Sneakers', slug: 'sneakers', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80&fit=crop', count: '800+ items' },
-  { name: 'Electronics', slug: 'electronics', image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=600&q=80&fit=crop', count: '1,200+ items' },
-  { name: 'Beauty', slug: 'beauty', image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600&q=80&fit=crop', count: '950+ items' },
-  { name: 'Home & Living', slug: 'home', image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80&fit=crop', count: '600+ items' },
-  { name: 'Accessories', slug: 'accessories', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80&fit=crop', count: '1,100+ items' },
+const STATIC_CATEGORIES = [
+  { id: 'c1', name: 'Fashion', slug: 'fashion', imageUrl: 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=600&q=80&fit=crop', productCount: null },
+  { id: 'c2', name: 'Sneakers', slug: 'sneakers', imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80&fit=crop', productCount: null },
+  { id: 'c3', name: 'Electronics', slug: 'electronics', imageUrl: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=600&q=80&fit=crop', productCount: null },
+  { id: 'c4', name: 'Beauty', slug: 'beauty', imageUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600&q=80&fit=crop', productCount: null },
+  { id: 'c5', name: 'Home & Living', slug: 'home', imageUrl: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80&fit=crop', productCount: null },
+  { id: 'c6', name: 'Accessories', slug: 'accessories', imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80&fit=crop', productCount: null },
 ];
 
 const TESTIMONIALS = [
@@ -59,8 +59,13 @@ async function getFeatured() {
   return payload?.data?.products?.length ? payload.data.products : FALLBACK_PRODUCTS;
 }
 
+async function getCategories() {
+  const payload = await fetchJsonSafe<any>('/api/categories');
+  return payload?.data?.categories?.length ? payload.data.categories : STATIC_CATEGORIES;
+}
+
 export default async function ClientHomePage() {
-  const featured = await getFeatured();
+  const [featured, categories] = await Promise.all([getFeatured(), getCategories()]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -228,14 +233,20 @@ export default async function ClientHomePage() {
           </Button>
         </div>
         <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-          {CATEGORIES.map((cat) => (
-            <Link key={cat.slug} href={`/category/${cat.slug}`} className="group card-hover">
+          {categories.slice(0, 6).map((cat: any) => (
+            <Link key={cat.id ?? cat.slug} href={`/category/${cat.slug}`} className="group card-hover">
               <div className="relative aspect-square rounded-2xl overflow-hidden">
-                <img src={cat.image} alt={cat.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                {cat.imageUrl ? (
+                  <img src={cat.imageUrl} alt={cat.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                ) : (
+                  <div className="w-full h-full brand-gradient" />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
                   <div className="font-bold text-sm">{cat.name}</div>
-                  <div className="text-[11px] text-white/70">{cat.count}</div>
+                  {cat.productCount != null && (
+                    <div className="text-[11px] text-white/70">{cat.productCount} items</div>
+                  )}
                 </div>
               </div>
             </Link>

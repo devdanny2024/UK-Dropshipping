@@ -96,20 +96,22 @@ model ProductSnapshot {
 }
 
 model Quote {
-  id                String   @id @default(cuid())
-  productSnapshotId String
-  size              String
-  color             String
-  qty               Int
-  subtotal          Float
-  shipping          Float
-  tax               Float
-  total             Float
-  currency          String
-  addressId         String
-  createdAt         DateTime @default(now())
-  productSnapshot   ProductSnapshot @relation(fields: [productSnapshotId], references: [id])
-  address           Address         @relation(fields: [addressId], references: [id])
+  id                    String   @id @default(cuid())
+  productSnapshotId     String
+  size                  String
+  color                 String
+  qty                   Int
+  subtotal              Float
+  shipping              Float
+  tax                   Float
+  total                 Float
+  currency              String
+  addressId             String
+  itemWeightGrams       Int?
+  chargeableWeightGrams Int?
+  createdAt             DateTime @default(now())
+  productSnapshot       ProductSnapshot @relation(fields: [productSnapshotId], references: [id])
+  address               Address         @relation(fields: [addressId], references: [id])
 }
 
 model Order {
@@ -223,38 +225,44 @@ model PasswordResetToken {
 }
 
 model Category {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String?
-  imageUrl    String?
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  products    Product[]
+  id                           String   @id @default(cuid())
+  name                         String
+  slug                         String   @unique
+  description                  String?
+  imageUrl                     String?
+  isActive                     Boolean  @default(true)
+  sortOrder                    Int      @default(0)
+  defaultWeightGrams           Int?
+  defaultChargeableWeightGrams Int?
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
+  products                     Product[]
 
   @@index([isActive])
   @@index([sortOrder])
 }
 
 model Product {
-  id            String   @id @default(cuid())
-  categoryId    String
-  category      Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  name          String
-  slug          String   @unique
-  description   String?
-  images        Json?
-  productCode   String?
-  externalUrl   String?
-  priceGBP      Decimal? @db.Decimal(10, 2)
-  currency      String   @default("GBP")
-  isActive      Boolean  @default(true)
-  isFeatured    Boolean  @default(false)
-  featuredOrder Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  categoryId            String
+  category              Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name                  String
+  slug                  String   @unique
+  description           String?
+  images                Json?
+  productCode           String?
+  externalUrl           String?
+  priceGBP              Decimal? @db.Decimal(10, 2)
+  currency              String   @default("GBP")
+  isActive              Boolean  @default(true)
+  isFeatured            Boolean  @default(false)
+  featuredOrder         Int      @default(0)
+  weightGrams           Int?
+  chargeableWeightGrams Int?
+  sizes                 Json?
+  gender                String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   @@index([categoryId])
   @@index([isFeatured])
@@ -282,4 +290,26 @@ model AppSetting {
   value     String
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
+}
+
+// Weight reference table — stores category fallbacks and named product weights
+model WeightReference {
+  id                    String   @id @default(cuid())
+  // e.g. "womens_clothing", "footwear", "electronics"
+  category              String
+  // e.g. "t-shirt", "jeans", or a named product like "Court Heels UK8 Female"
+  label                 String
+  // actual weight in grams (optional — may only have chargeable)
+  actualWeightGrams     Int?
+  // chargeable/billable weight in grams used for shipping cost
+  chargeableWeightGrams Int
+  // if true this is a named product entry (real shipment data), else a category fallback
+  isNamedProduct        Boolean  @default(false)
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([category, label])
+  @@index([category])
+  @@index([isNamedProduct])
 }

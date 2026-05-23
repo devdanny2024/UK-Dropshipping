@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DollarSign, Truck, Bell, Settings as SettingsIcon, RefreshCw, X } from 'lucide-react';
+import { DollarSign, Truck, Bell, Settings as SettingsIcon, RefreshCw, X, Scale } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
@@ -36,10 +36,15 @@ export default function AdminSettingsPage() {
   const [deliverySaving, setDeliverySaving] = useState(false);
   const [deliveryMsg, setDeliveryMsg] = useState<string | null>(null);
 
+  const [shippingRate, setShippingRate] = useState('800');
+  const [shippingRateSaving, setShippingRateSaving] = useState(false);
+  const [shippingRateMsg, setShippingRateMsg] = useState<string | null>(null);
+
   useEffect(() => {
     loadFx();
     loadFee();
     loadDeliveryFees();
+    loadShippingRate();
   }, []);
 
   async function loadFx() {
@@ -122,6 +127,31 @@ export default function AdminSettingsPage() {
     finally { setDeliverySaving(false); }
   }
 
+  async function loadShippingRate() {
+    try {
+      const res = await fetch('/api/proxy/v1/admin/shipping-rate', { credentials: 'include' });
+      const payload = await res.json();
+      if (payload?.ok) setShippingRate(String(payload.data?.ratePerKgNgn ?? '800'));
+    } catch { /* noop */ }
+  }
+
+  async function saveShippingRate() {
+    const val = Number(shippingRate);
+    if (!Number.isFinite(val) || val <= 0) return;
+    setShippingRateSaving(true);
+    setShippingRateMsg(null);
+    try {
+      await fetch('/api/proxy/v1/admin/shipping-rate', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ratePerKgNgn: val })
+      });
+      setShippingRateMsg('Saved');
+    } catch { setShippingRateMsg('Error saving'); }
+    finally { setShippingRateSaving(false); }
+  }
+
   async function saveFee() {
     const val = Number(feeValue);
     if (!Number.isFinite(val) || val < 0 || val > 100) return;
@@ -145,6 +175,41 @@ export default function AdminSettingsPage() {
         <h1 className="text-3xl font-semibold text-foreground">Settings</h1>
         <p className="text-muted-foreground mt-2">Configure pricing rules, notifications, and logistics defaults</p>
       </div>
+
+      {/* Shipping Weight Rate */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Scale className="h-5 w-5" />
+            Shipping Rate (Weight-based)
+          </CardTitle>
+          <CardDescription>
+            Rate per kg applied to chargeable weight. Formula: chargeable_kg &times; rate = shipping cost.
+            Default: NGN 800/kg. Manage weight references in the Weight References page.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="shippingRate">Rate per kg (NGN)</Label>
+            <Input
+              id="shippingRate"
+              type="number"
+              min={1}
+              step={50}
+              value={shippingRate}
+              onChange={(e) => setShippingRate(e.target.value)}
+              placeholder="800"
+            />
+            <p className="text-xs text-muted-foreground">
+              Example: a 1.5 kg item at {shippingRate || 800} NGN/kg = NGN {((Number(shippingRate) || 800) * 1.5).toLocaleString()}
+            </p>
+          </div>
+          {shippingRateMsg && <p className="text-sm text-muted-foreground">{shippingRateMsg}</p>}
+          <Button className="w-full" onClick={saveShippingRate} disabled={shippingRateSaving}>
+            {shippingRateSaving ? 'Saving...' : 'Save Shipping Rate'}
+          </Button>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

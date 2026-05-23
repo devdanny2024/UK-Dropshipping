@@ -4,7 +4,8 @@ import { parseBody } from '../../../../lib/parse';
 import { quoteSchema } from '../../../../lib/schemas';
 import { prisma } from '../../../../lib/prisma';
 import { getClientSession } from '../../../../lib/auth';
-import { getPlatformFeePercent } from '../../../../lib/settings';
+import { getPlatformFeePercent, getShippingRatePerKgNgn } from '../../../../lib/settings';
+import { resolveChargeableWeight, calcShippingCostNgn } from '../../../../lib/weight';
 
 export async function POST(request: NextRequest) {
   const session = await getClientSession(request);
@@ -37,9 +38,43 @@ export async function POST(request: NextRequest) {
 
   const unitPrice = data.overridePrice ?? snapshot.price;
   const subtotal = unitPrice * data.qty;
-  const shipping = 9.5;
+
+  // Resolve weight-based shipping cost
+  const [platformFeePercent, shippingRateNgn] = await Promise.all([
+    getPlatformFeePercent(),
+    getShippingRatePerKgNgn()
+  ]);
+
+  // Try to find the product that matches this snapshot URL
+  const matchedProduct = await prisma.product.findFirst({
+    where: { externalUrl: snapshot.url },
+    select: { id: true, categoryId: true, chargeableWeightGrams: true, category: true }
+  });
+
+  let chargeableWeightGrams: number | null = null;
+  let itemWeightGrams: number | null = null;
+  let weightSource = 'default';
+
+  if (matchedProduct) {
+    const resolved = await resolveChargeableWeight(
+      matchedProduct.id,
+      matchedProduct.categoryId,
+      snapshot.title
+    );
+    chargeableWeightGrams = resolved.chargeableWeightGrams;
+    itemWeightGrams = resolved.actualWeightGrams;
+    weightSource = resolved.source;
+  }
+
+  // shipping: weight-based if we resolved a weight, else flat £9.50
+  let shipping: number;
+  if (chargeableWeightGrams !== null) {
+    shipping = calcShippingCostNgn(chargeableWeightGrams * data.qty, shippingRateNgn);
+  } else {
+    shipping = 9.5;
+  }
+
   const tax = subtotal * 0.06;
-  const platformFeePercent = await getPlatformFeePercent();
   const platformFee = subtotal * (platformFeePercent / 100);
   const total = subtotal + shipping + tax + platformFee;
 
@@ -54,7 +89,9 @@ export async function POST(request: NextRequest) {
       shipping,
       tax,
       total,
-      currency: snapshot.currency
+      currency: snapshot.currency,
+      itemWeightGrams: itemWeightGrams ?? undefined,
+      chargeableWeightGrams: chargeableWeightGrams ?? undefined
     }
   });
 
@@ -71,6 +108,10 @@ export async function POST(request: NextRequest) {
     platformFeePercent,
     total: quote.total,
     currency: quote.currency,
+    chargeableWeightGrams: quote.chargeableWeightGrams,
+    itemWeightGrams: quote.itemWeightGrams,
+    weightSource,
+    shippingRatePerKgNgn: shippingRateNgn,
     createdAt: quote.createdAt.toISOString()
   });
 }

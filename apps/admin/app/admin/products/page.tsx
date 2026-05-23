@@ -32,6 +32,10 @@ type Product = {
   featuredOrder: number;
   priceGBP?: string | number | null;
   currency?: string | null;
+  weightGrams?: number | null;
+  chargeableWeightGrams?: number | null;
+  sizes?: string[] | null;
+  gender?: string | null;
 };
 
 const apiBase = '/api/proxy/admin';
@@ -131,6 +135,9 @@ export default function AdminProductsPage() {
       ? imagesText.split(',').map((value) => value.trim()).filter(Boolean)
       : undefined;
 
+    const sizesText = String(formData.get('sizes') ?? '');
+    const sizes = sizesText ? sizesText.split(',').map((s) => s.trim()).filter(Boolean) : undefined;
+
     const payload = {
       name: String(formData.get('name') ?? ''),
       slug: String(formData.get('slug') ?? '') || undefined,
@@ -143,7 +150,11 @@ export default function AdminProductsPage() {
       currency: String(formData.get('currency') ?? 'GBP') || 'GBP',
       isActive: Boolean(formData.get('isActive')),
       isFeatured: Boolean(formData.get('isFeatured')),
-      featuredOrder: Number(formData.get('featuredOrder') ?? 0)
+      featuredOrder: Number(formData.get('featuredOrder') ?? 0),
+      weightGrams: formData.get('weightGrams') ? Number(formData.get('weightGrams')) : undefined,
+      chargeableWeightGrams: formData.get('chargeableWeightGrams') ? Number(formData.get('chargeableWeightGrams')) : undefined,
+      sizes,
+      gender: String(formData.get('gender') ?? '') || undefined
     };
 
     const url = editing ? `${apiBase}/products/${editing.id}` : `${apiBase}/products`;
@@ -308,6 +319,22 @@ export default function AdminProductsPage() {
                 <Label htmlFor="featuredOrder">Featured order</Label>
                 <Input id="featuredOrder" name="featuredOrder" type="number" defaultValue={editing?.featuredOrder ?? 0} />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="weightGrams">Actual weight (grams)</Label>
+                <Input id="weightGrams" name="weightGrams" type="number" min="1" step="1" defaultValue={editing?.weightGrams ?? ''} placeholder="optional" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="chargeableWeightGrams">Chargeable weight (grams)</Label>
+                <Input id="chargeableWeightGrams" name="chargeableWeightGrams" type="number" min="1" step="1" defaultValue={editing?.chargeableWeightGrams ?? ''} placeholder="optional — overrides category fallback" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sizes">Available sizes (comma separated)</Label>
+                <Input id="sizes" name="sizes" defaultValue={Array.isArray(editing?.sizes) ? editing?.sizes?.join(', ') : ''} placeholder="XS, S, M, L, XL" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gender">Gender</Label>
+                <Input id="gender" name="gender" defaultValue={editing?.gender ?? ''} placeholder="male, female, unisex, kids" />
+              </div>
               {error && <p className="text-sm text-destructive md:col-span-2">{error}</p>}
               <DialogFooter className="md:col-span-2">
                 <Button type="submit">{editing ? 'Save changes' : 'Create'}</Button>
@@ -440,6 +467,8 @@ export default function AdminProductsPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Category</TableHead>
+                  <TableHead>Weight</TableHead>
+                  <TableHead>Chargeable</TableHead>
                   <TableHead>Active</TableHead>
                   <TableHead>Featured</TableHead>
                   <TableHead>Order</TableHead>
@@ -451,6 +480,12 @@ export default function AdminProductsPage() {
                   <TableRow key={product.id}>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>{product.category?.name ?? '-'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {product.weightGrams ? `${(product.weightGrams / 1000).toFixed(2)} kg` : '-'}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {product.chargeableWeightGrams ? `${(product.chargeableWeightGrams / 1000).toFixed(2)} kg` : '-'}
+                    </TableCell>
                     <TableCell>
                       <Switch checked={product.isActive} onCheckedChange={() => toggleActive(product)} />
                     </TableCell>

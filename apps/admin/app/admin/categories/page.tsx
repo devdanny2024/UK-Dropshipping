@@ -19,6 +19,8 @@ type Category = {
   imageUrl?: string | null;
   isActive: boolean;
   sortOrder: number;
+  defaultWeightGrams?: number | null;
+  defaultChargeableWeightGrams?: number | null;
   createdAt: string;
 };
 
@@ -60,7 +62,9 @@ export default function AdminCategoriesPage() {
       description: String(formData.get('description') ?? '') || undefined,
       imageUrl: String(formData.get('imageUrl') ?? '') || undefined,
       sortOrder: Number(formData.get('sortOrder') ?? 0),
-      isActive: Boolean(formData.get('isActive'))
+      isActive: Boolean(formData.get('isActive')),
+      defaultWeightGrams: formData.get('defaultWeightGrams') ? Number(formData.get('defaultWeightGrams')) : undefined,
+      defaultChargeableWeightGrams: formData.get('defaultChargeableWeightGrams') ? Number(formData.get('defaultChargeableWeightGrams')) : undefined
     };
 
     const url = editing ? `${apiBase}/categories/${editing.id}` : `${apiBase}/categories`;
@@ -159,6 +163,14 @@ export default function AdminCategoriesPage() {
               <div className="space-y-2">
                 <Label htmlFor="sortOrder">Sort order</Label>
                 <Input id="sortOrder" name="sortOrder" type="number" defaultValue={editing?.sortOrder ?? 0} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="defaultWeightGrams">Default weight (grams)</Label>
+                <Input id="defaultWeightGrams" name="defaultWeightGrams" type="number" min="1" defaultValue={editing?.defaultWeightGrams ?? ''} placeholder="e.g. 400" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="defaultChargeableWeightGrams">Default chargeable weight (grams)</Label>
+                <Input id="defaultChargeableWeightGrams" name="defaultChargeableWeightGrams" type="number" min="1" defaultValue={editing?.defaultChargeableWeightGrams ?? ''} placeholder="e.g. 460" />
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="isActive">Active</Label>

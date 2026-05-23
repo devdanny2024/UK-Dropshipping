@@ -33,7 +33,9 @@ export async function POST(request: NextRequest) {
       description: data.description,
       imageUrl: data.imageUrl,
       isActive: data.isActive ?? true,
-      sortOrder: data.sortOrder ?? 0
+      sortOrder: data.sortOrder ?? 0,
+      defaultWeightGrams: data.defaultWeightGrams,
+      defaultChargeableWeightGrams: data.defaultChargeableWeightGrams
     }
   });
 
