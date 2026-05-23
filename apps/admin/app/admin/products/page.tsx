@@ -35,6 +35,7 @@ type Product = {
   weightGrams?: number | null;
   chargeableWeightGrams?: number | null;
   sizes?: string[] | null;
+  colors?: string[] | null;
   gender?: string | null;
 };
 
@@ -138,6 +139,9 @@ export default function AdminProductsPage() {
     const sizesText = String(formData.get('sizes') ?? '');
     const sizes = sizesText ? sizesText.split(',').map((s) => s.trim()).filter(Boolean) : undefined;
 
+    const colorsText = String(formData.get('colors') ?? '');
+    const colors = colorsText ? colorsText.split(',').map((s) => s.trim()).filter(Boolean) : undefined;
+
     const payload = {
       name: String(formData.get('name') ?? ''),
       slug: String(formData.get('slug') ?? '') || undefined,
@@ -154,6 +158,7 @@ export default function AdminProductsPage() {
       weightGrams: formData.get('weightGrams') ? Number(formData.get('weightGrams')) : undefined,
       chargeableWeightGrams: formData.get('chargeableWeightGrams') ? Number(formData.get('chargeableWeightGrams')) : undefined,
       sizes,
+      colors,
       gender: String(formData.get('gender') ?? '') || undefined
     };
 
@@ -330,6 +335,10 @@ export default function AdminProductsPage() {
               <div className="space-y-2">
                 <Label htmlFor="sizes">Available sizes (comma separated)</Label>
                 <Input id="sizes" name="sizes" defaultValue={Array.isArray(editing?.sizes) ? editing?.sizes?.join(', ') : ''} placeholder="XS, S, M, L, XL" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="colors">Available colours (comma separated)</Label>
+                <Input id="colors" name="colors" defaultValue={Array.isArray(editing?.colors) ? editing?.colors?.join(', ') : ''} placeholder="Black, White, Red, Navy" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="gender">Gender</Label>
