@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, ShieldCheck, Truck, Package } from 'lucide-react';
-import { useCart } from '@/app/components/cart/use-cart';
+import { useCart, itemKey } from '@/app/components/cart/use-cart';
 import { useCurrency } from '@/app/hooks/use-currency';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
@@ -83,7 +83,7 @@ export default function CartPage() {
           {/* Items */}
           <div className="space-y-4">
             {items.map((item) => {
-              const key = item.productId ?? item.slug ?? item.externalUrl ?? '';
+              const key = itemKey(item);
               return (
                 <Card key={key}>
                   <CardContent className="p-4">
@@ -97,9 +97,17 @@ export default function CartPage() {
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <h3 className="font-semibold text-sm leading-snug">{item.name}</h3>
-                            {item.categoryName && (
-                              <Badge variant="secondary" className="mt-1 text-[10px]">{item.categoryName}</Badge>
-                            )}
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {item.categoryName && (
+                                <Badge variant="secondary" className="text-[10px]">{item.categoryName}</Badge>
+                              )}
+                              {item.size && (
+                                <Badge variant="outline" className="text-[10px]">Size: {item.size}</Badge>
+                              )}
+                              {item.color && (
+                                <Badge variant="outline" className="text-[10px]">Colour: {item.color}</Badge>
+                              )}
+                            </div>
                           </div>
                           <Button
                             variant="ghost"

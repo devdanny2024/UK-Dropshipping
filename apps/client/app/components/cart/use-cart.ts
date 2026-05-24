@@ -13,21 +13,28 @@ export type CartItem = {
   externalUrl?: string;
   productCode?: string;
   categoryName?: string;
+  size?: string;
+  color?: string;
 };
 
 type CartState = {
   items: CartItem[];
   currency: 'GBP';
+  isOpen: boolean;
+  setOpen: (open: boolean) => void;
   addItem: (item: CartItem) => void;
-  removeItem: (slugOrId: string) => void;
-  updateQuantity: (slugOrId: string, quantity: number) => void;
+  removeItem: (key: string) => void;
+  updateQuantity: (key: string, quantity: number) => void;
   clear: () => void;
   count: () => number;
   subtotal: () => number;
 };
 
-function matchId(item: CartItem, slugOrId: string) {
-  return item.productId === slugOrId || item.slug === slugOrId || item.externalUrl === slugOrId;
+export function itemKey(item: CartItem): string {
+  const base = item.productId ?? item.slug ?? item.externalUrl ?? item.name;
+  const size = item.size ?? '';
+  const color = item.color ?? '';
+  return `${base}__${size}__${color}`;
 }
 
 export const useCart = create<CartState>()(
@@ -35,34 +42,41 @@ export const useCart = create<CartState>()(
     (set, get) => ({
       items: [],
       currency: 'GBP',
+      isOpen: false,
+      setOpen: (open) => set({ isOpen: open }),
       addItem: (item) =>
         set((state) => {
-          const existing = state.items.find((existingItem) => matchId(existingItem, item.productId ?? item.slug ?? item.externalUrl ?? ''));
+          const key = itemKey(item);
+          const existing = state.items.find((existingItem) => itemKey(existingItem) === key);
           if (existing) {
             return {
+              isOpen: true,
               items: state.items.map((existingItem) =>
-                matchId(existingItem, item.productId ?? item.slug ?? item.externalUrl ?? '')
+                itemKey(existingItem) === key
                   ? { ...existingItem, quantity: existingItem.quantity + item.quantity }
                   : existingItem
               )
             };
           }
-          return { items: [...state.items, item] };
+          return { isOpen: true, items: [...state.items, item] };
         }),
-      removeItem: (slugOrId) =>
+      removeItem: (key) =>
         set((state) => ({
-          items: state.items.filter((item) => !matchId(item, slugOrId))
+          items: state.items.filter((item) => itemKey(item) !== key)
         })),
-      updateQuantity: (slugOrId, quantity) =>
+      updateQuantity: (key, quantity) =>
         set((state) => ({
           items: state.items.map((item) =>
-            matchId(item, slugOrId) ? { ...item, quantity: Math.max(1, quantity) } : item
+            itemKey(item) === key ? { ...item, quantity: Math.max(1, quantity) } : item
           )
         })),
       clear: () => set({ items: [] }),
       count: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
       subtotal: () => get().items.reduce((sum, item) => sum + (item.priceGBP ?? 0) * item.quantity, 0)
     }),
-    { name: 'uk2me-cart' }
+    {
+      name: 'uk2me-cart',
+      partialize: (state) => ({ items: state.items, currency: state.currency })
+    }
   )
 );

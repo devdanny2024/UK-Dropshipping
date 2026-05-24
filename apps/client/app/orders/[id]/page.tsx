@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/ca
 import { Button } from '@/app/components/ui/button';
 import { StatusBadge } from '@/app/components/StatusBadge';
 import { AccountShell } from '@/app/components/AccountShell';
+import { useCurrency } from '@/app/hooks/use-currency';
 
 type OrderEvent = { id: string; type: string; message: string; createdAt: string };
 type Shipment = { id: string; carrier: string; trackingNumber: string; status: string };
@@ -68,6 +69,7 @@ export default function ClientTrackingPage() {
   }
 
   const firstItem = order.items[0];
+  const { formatAmount } = useCurrency();
 
   return (
     <AccountShell title="Orders">
@@ -91,7 +93,7 @@ export default function ClientTrackingPage() {
             <div className="grid gap-4 md:grid-cols-3">
               <div>
                 <div className="text-sm text-muted-foreground">Total Paid</div>
-                <div className="font-medium">{order.currency} {order.total.toFixed(2)}</div>
+                <div className="font-medium">{formatAmount(order.total, order.currency)}</div>
               </div>
               {firstItem && (
                 <div>

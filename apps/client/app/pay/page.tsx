@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/ca
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { Separator } from '@/app/components/ui/separator';
+import { useCurrency } from '@/app/hooks/use-currency';
 
 function SimulatedSuccess({ orderId }: { orderId: string }) {
   const router = useRouter();
@@ -65,9 +66,9 @@ function ClientPaymentContent() {
   const [orderId, setOrderId] = useState('');
   const [loading, setLoading] = useState<'paystack' | 'stripe' | 'simulate' | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [gbpTotal, setGbpTotal] = useState<string | null>(null);
-  const [ngnAmount, setNgnAmount] = useState<number | null>(null);
+  const [rawGbpTotal, setRawGbpTotal] = useState<number | null>(null);
   const [success, setSuccess] = useState(false);
+  const { formatPrice, rates } = useCurrency();
 
   useEffect(() => {
     const id = params.get('orderId') ?? '';
@@ -77,18 +78,14 @@ function ClientPaymentContent() {
     try {
       const parsed = JSON.parse(raw);
       const total = parsed?.total ?? parsed?.subtotal;
-      if (typeof total === 'number') {
-        setGbpTotal(`£${total.toFixed(2)}`);
-        fetch('/api/proxy/v1/fx?base=GBP&symbols=NGN')
-          .then((r) => r.json())
-          .then((payload) => {
-            const rate = payload?.data?.rates?.NGN;
-            if (typeof rate === 'number') setNgnAmount(Number((total * rate).toFixed(2)));
-          })
-          .catch(() => undefined);
-      }
+      if (typeof total === 'number') setRawGbpTotal(total);
     } catch { /* noop */ }
   }, [params]);
+
+  const gbpTotal = rawGbpTotal != null ? formatPrice(rawGbpTotal) : null;
+  const ngnAmount = rawGbpTotal != null && rates.NGN
+    ? Number((rawGbpTotal * rates.NGN).toFixed(2))
+    : null;
 
   const startPayment = async (provider: 'paystack' | 'stripe') => {
     if (!orderId) { setError('No order ID found. Please start from the product page.'); return; }
@@ -178,7 +175,7 @@ function ClientPaymentContent() {
                 <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Order Total</div>
                 {gbpTotal && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground text-sm">GBP amount</span>
+                    <span className="text-muted-foreground text-sm">Amount</span>
                     <span className="font-bold text-lg">{gbpTotal}</span>
                   </div>
                 )}

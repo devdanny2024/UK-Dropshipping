@@ -37,6 +37,9 @@ function LoginContent() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
+  // Anti-bot
+  const [formLoadedAt] = useState(() => Date.now());
+  const [honeypot, setHoneypot] = useState('');
   const googleBtnRef = useRef<HTMLDivElement>(null);
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/proxy';
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
@@ -101,6 +104,13 @@ function LoginContent() {
     event.preventDefault();
     setError(null);
     setInfo(null);
+
+    if (honeypot) return;
+    if (Date.now() - formLoadedAt < 1500) {
+      setError('Please wait a moment before submitting.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
@@ -164,6 +174,10 @@ function LoginContent() {
               <div className="h-px flex-1 bg-border" />
             </div>
             <form className="space-y-4" onSubmit={handleLogin}>
+              {/* Anti-bot honeypot */}
+              <div style={{ display: 'none' }} aria-hidden="true">
+                <input tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} name="website" />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" name="email" type="email" placeholder="you@example.com" required />

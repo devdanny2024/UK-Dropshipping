@@ -10,6 +10,7 @@ import { Label } from '@/app/components/ui/label';
 import { Badge } from '@/app/components/ui/badge';
 import { Input } from '@/app/components/ui/input';
 import { useCart } from '@/app/components/cart/use-cart';
+import { useCurrency, US_TAX_RATE } from '@/app/hooks/use-currency';
 
 const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'UK4', 'UK5', 'UK6', 'UK7', 'UK8', 'UK9', 'UK10', 'UK11', 'UK12', 'One Size'];
 const COMMON_COLORS = ['Black', 'White', 'Navy', 'Grey', 'Red', 'Blue', 'Green', 'Pink', 'Brown', 'Beige', 'Other'];
@@ -32,8 +33,6 @@ function PreviewContent() {
     url: string;
     manual?: boolean;
   } | null>(null);
-  const [quoteLoading, setQuoteLoading] = useState(false);
-  const [quoteError, setQuoteError] = useState<string | null>(null);
   const [manualPrice, setManualPrice] = useState<string>('');
 
   // Fallback / manual entry state (when crawler fails completely)
@@ -44,6 +43,7 @@ function PreviewContent() {
   const [manualError, setManualError] = useState<string | null>(null);
 
   const { addItem } = useCart();
+  const { formatAmount, toGBP } = useCurrency();
 
   const hasUrl = Boolean(params.get('url'));
 
@@ -59,51 +59,23 @@ function PreviewContent() {
     const effectivePrice = detectedPrice && detectedPrice > 0
       ? detectedPrice
       : (parseFloat(manualPrice) || null);
+    const sourceCurrency = resolved?.currency ?? 'GBP';
+    // US store: currency is USD (non-GBP from a non-UK domain)
+    const isUSStore = sourceCurrency === 'USD';
+    const usTax = (isUSStore && effectivePrice) ? effectivePrice * US_TAX_RATE : 0;
     return {
       name: resolved?.title ?? 'Product',
       price: effectivePrice,
+      priceWithTax: effectivePrice ? effectivePrice + usTax : null,
       priceDetected: Boolean(detectedPrice && detectedPrice > 0),
-      currency: resolved?.currency ?? 'GBP',
+      currency: sourceCurrency,
+      isUSStore,
+      usTax,
       image: resolved?.imageUrl ?? fallbackImage,
       store,
       url
     };
   }, [params, resolved, manualPrice, store]);
-
-  const handleGenerateQuote = async () => {
-    if (!resolved?.snapshotId) return;
-    setQuoteLoading(true);
-    setQuoteError(null);
-    try {
-      const res = await fetch('/api/proxy/v1/quotes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          productSnapshotId: resolved.snapshotId,
-          size,
-          color,
-          qty: quantity,
-          addressId: 'placeholder',
-          ...(product.price && !product.priceDetected ? { overridePrice: product.price } : {})
-        })
-      });
-      const payload = await res.json();
-      if (res.status === 401) {
-        router.push(`/login?next=${encodeURIComponent(window.location.href)}`);
-        return;
-      }
-      if (!res.ok || !payload.ok) {
-        throw new Error(payload?.error?.message ?? 'Failed to create quote');
-      }
-      localStorage.setItem('uk2me-active-quote', JSON.stringify(payload.data));
-      router.push(`/quote?quoteId=${payload.data.id}`);
-    } catch (err) {
-      setQuoteError(err instanceof Error ? err.message : 'Failed to create quote');
-    } finally {
-      setQuoteLoading(false);
-    }
-  };
 
   const handleCreateManualSnapshot = async () => {
     const price = parseFloat(manualPrice);
@@ -373,13 +345,29 @@ function PreviewContent() {
                 )}
 
                 {/* Price section */}
-                <div>
+                <div className="space-y-2">
                   {product.priceDetected ? (
                     <>
                       <div className="text-3xl font-bold text-foreground">
-                        {product.currency} {product.price!.toFixed(2)}
+                        {formatAmount(product.price, product.currency)}
                       </div>
-                      <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                      {product.isUSStore && product.usTax > 0 && (
+                        <div className="rounded-md border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 px-3 py-2 text-sm space-y-1">
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Product price</span>
+                            <span>{formatAmount(product.price, product.currency)}</span>
+                          </div>
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>US Sales Tax (est. 8%)</span>
+                            <span>+ {formatAmount(product.usTax, product.currency)}</span>
+                          </div>
+                          <div className="flex justify-between font-semibold border-t border-blue-200 dark:border-blue-800 pt-1 mt-1">
+                            <span>Total incl. tax</span>
+                            <span>{formatAmount(product.priceWithTax, product.currency)}</span>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Clock className="h-4 w-4" />
                         Price last checked at{' '}
                         {new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
@@ -403,7 +391,9 @@ function PreviewContent() {
                           className="w-36"
                         />
                         {product.price && (
-                          <span className="text-sm text-muted-foreground">= {product.currency} {product.price.toFixed(2)}</span>
+                          <span className="text-sm text-muted-foreground">
+                            = {formatAmount(product.price, product.currency)}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -459,41 +449,36 @@ function PreviewContent() {
 
                 {/* Action buttons */}
                 <div className="pt-4 space-y-3">
-                  {quoteError && (
-                    <p className="text-sm text-destructive">{quoteError}</p>
-                  )}
                   <Button
-                    onClick={handleGenerateQuote}
-                    className="w-full"
-                    size="lg"
-                    disabled={isLoading || quoteLoading || !resolved?.snapshotId || !product.price}
-                  >
-                    {quoteLoading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Creating quote...
-                      </>
-                    ) : 'Generate Quote'}
-                  </Button>
-                  <Button
-                    variant="outline"
                     className="w-full gap-2"
-                    disabled={isLoading || !product.price || !resolved?.snapshotId}
-                    onClick={() =>
+                    size="lg"
+                    disabled={isLoading || !product.priceWithTax || !resolved?.snapshotId}
+                    onClick={() => {
+                      const taxInclusivePrice = product.priceWithTax ?? product.price ?? 0;
                       addItem({
                         name: product.name,
                         slug: undefined,
                         imageUrl: product.image,
-                        priceGBP: product.price ?? undefined,
+                        // Normalise to GBP (handles USD products and US tax)
+                        priceGBP: toGBP(taxInclusivePrice, product.currency),
                         quantity,
                         externalUrl: product.url,
                         productCode: undefined,
-                        categoryName: store
-                      })
-                    }
+                        categoryName: store,
+                        size,
+                        color
+                      });
+                    }}
                   >
                     <ShoppingCart className="h-4 w-4" />
                     Add to cart
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={() => router.push('/shop')}
+                  >
+                    Continue Shopping
                   </Button>
                   <Button
                     variant="outline"

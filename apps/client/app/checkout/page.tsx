@@ -9,18 +9,22 @@ import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Separator } from '@/app/components/ui/separator';
 import { Badge } from '@/app/components/ui/badge';
-import { useCart } from '@/app/components/cart/use-cart';
+import { useCart, itemKey } from '@/app/components/cart/use-cart';
+import { useCurrency } from '@/app/hooks/use-currency';
 
 type DeliveryType = 'door' | 'pickup';
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, subtotal, clear } = useCart();
+  const { formatPrice } = useCurrency();
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('door');
   const [doorFee, setDoorFee] = useState(15);
   const [pickupFee, setPickupFee] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [formLoadedAt] = useState(() => Date.now());
+  const [honeypot, setHoneypot] = useState('');
 
   const [form, setForm] = useState({
     recipientName: '',
@@ -56,6 +60,13 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (honeypot) return;
+    if (Date.now() - formLoadedAt < 2000) {
+      setError('Please wait a moment before submitting.');
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch('/api/proxy/v1/checkout', {
@@ -71,6 +82,8 @@ export default function CheckoutPage() {
             externalUrl: item.externalUrl,
             productCode: item.productCode,
             categoryName: item.categoryName,
+            size: item.size,
+            color: item.color,
           })),
           address: {
             recipientName: form.recipientName,
@@ -127,6 +140,10 @@ export default function CheckoutPage() {
         <h1 className="text-2xl font-bold mb-6">Checkout</h1>
 
         <form onSubmit={handleSubmit}>
+          {/* Anti-bot honeypot */}
+          <div style={{ display: 'none' }} aria-hidden="true">
+            <input tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} name="website" />
+          </div>
           <div className="grid gap-6 lg:grid-cols-[1fr_360px] items-start">
             <div className="space-y-6">
               {/* Delivery Method */}
@@ -151,7 +168,7 @@ export default function CheckoutPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">Delivered to your address</p>
                     <p className="text-sm font-bold mt-2" style={{ color: 'var(--brand-violet)' }}>
-                      {doorFee === 0 ? 'Free' : `+£${doorFee.toFixed(2)}`}
+                      {doorFee === 0 ? 'Free' : `+${formatPrice(doorFee)}`}
                     </p>
                   </button>
 
@@ -171,7 +188,7 @@ export default function CheckoutPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">Collect from our pickup point</p>
                     <p className="text-sm font-bold mt-2" style={{ color: 'var(--brand-violet)' }}>
-                      {pickupFee === 0 ? 'Free' : `+£${pickupFee.toFixed(2)}`}
+                      {pickupFee === 0 ? 'Free' : `+${formatPrice(pickupFee)}`}
                     </p>
                   </button>
                 </CardContent>
@@ -254,7 +271,7 @@ export default function CheckoutPage() {
                 <CardContent className="space-y-3">
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {items.map((item) => {
-                      const key = item.productId ?? item.slug ?? item.externalUrl ?? item.name;
+                      const key = itemKey(item);
                       return (
                         <div key={key} className="flex items-center gap-2.5">
                           {item.imageUrl && (
@@ -262,9 +279,13 @@ export default function CheckoutPage() {
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium truncate">{item.name}</p>
-                            <p className="text-xs text-muted-foreground">×{item.quantity}</p>
+                            <p className="text-xs text-muted-foreground">
+                              ×{item.quantity}
+                              {item.size ? ` · ${item.size}` : ''}
+                              {item.color ? ` · ${item.color}` : ''}
+                            </p>
                           </div>
-                          <span className="text-xs font-semibold shrink-0">£{((item.priceGBP ?? 0) * item.quantity).toFixed(2)}</span>
+                          <span className="text-xs font-semibold shrink-0">{formatPrice((item.priceGBP ?? 0) * item.quantity)}</span>
                         </div>
                       );
                     })}
@@ -273,17 +294,17 @@ export default function CheckoutPage() {
                   <div className="space-y-1.5 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Subtotal</span>
-                      <span>£{cartTotal.toFixed(2)}</span>
+                      <span>{formatPrice(cartTotal)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Delivery</span>
-                      <span>{deliveryFee === 0 ? 'Free' : `£${deliveryFee.toFixed(2)}`}</span>
+                      <span>{deliveryFee === 0 ? 'Free' : formatPrice(deliveryFee)}</span>
                     </div>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-bold text-base">
                     <span>Total</span>
-                    <span style={{ color: 'var(--brand-violet)' }}>£{grandTotal.toFixed(2)}</span>
+                    <span style={{ color: 'var(--brand-violet)' }}>{formatPrice(grandTotal)}</span>
                   </div>
 
                   {error && (

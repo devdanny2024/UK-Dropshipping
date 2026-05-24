@@ -28,7 +28,7 @@ const menuItems = [
   { href: '/admin/adapters', label: 'Store Adapters', icon: Store },
   { href: '/admin/finance', label: 'Finance', icon: Percent },
   { href: '/admin/weight-references', label: 'Weight References', icon: Scale },
-  { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin/users', label: 'Clients', icon: Users },
   { href: '/admin/roles', label: 'Roles', icon: Shield },
   { href: '/admin/settings', label: 'Settings', icon: Settings }
 ];

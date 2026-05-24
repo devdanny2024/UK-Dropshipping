@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { ArrowRight, ShieldCheck, Sparkles, Truck, Globe, Clock, Star, Package, CheckCircle, Zap } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Card, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
+import { HeroQuoteCard } from '@/app/components/HeroQuoteCard';
 import { ProductCard } from '@/app/components/ProductCard';
 import { fetchJsonSafe } from '@/app/lib/server-api';
 
@@ -123,42 +124,7 @@ export default async function ClientHomePage() {
             </div>
 
             {/* Quote card */}
-            <Card className="shadow-2xl border-white/10 bg-white/95 backdrop-blur">
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--brand-violet)' }}>
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Instant Quote Preview
-                </div>
-                <CardTitle className="text-xl">Nike Air Max 270 — UK</CardTitle>
-                <CardDescription>Full landed cost to Lagos, Nigeria</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {[
-                  ['Item price', 'GBP 109.99'],
-                  ['UK delivery', 'GBP 0.00'],
-                  ['International shipping', 'GBP 38.00'],
-                  ['Service fee', 'GBP 11.00'],
-                  ['Duties buffer', 'GBP 8.50'],
-                ].map(([label, value]) => (
-                  <div key={label} className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{label}</span>
-                    <span className="font-medium">{value}</span>
-                  </div>
-                ))}
-                <div className="h-px bg-border" />
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-base">Total</span>
-                  <div className="text-right">
-                    <div className="font-bold text-lg">GBP 167.49</div>
-                    <div className="text-xs text-muted-foreground">≈ ₦264,280</div>
-                  </div>
-                </div>
-                <Button asChild className="w-full gap-2" style={{ background: 'var(--brand-violet)' }}>
-                  <Link href="/preview">Get your quote <ArrowRight className="h-4 w-4" /></Link>
-                </Button>
-                <p className="text-[11px] text-center text-muted-foreground">No hidden fees · FX rate locked at checkout</p>
-              </CardContent>
-            </Card>
+            <HeroQuoteCard />
           </div>
         </div>
       </section>

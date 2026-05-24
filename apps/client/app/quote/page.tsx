@@ -6,6 +6,7 @@ import { ArrowLeft, CreditCard, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Separator } from '@/app/components/ui/separator';
+import { useCurrency } from '@/app/hooks/use-currency';
 
 type Quote = {
   id: string;
@@ -25,9 +26,9 @@ function QuoteContent() {
   const params = useSearchParams();
   const quoteId = params.get('quoteId');
   const [quote, setQuote] = useState<Quote | null>(null);
-  const [rates, setRates] = useState<{ USD?: number; NGN?: number }>({});
   const [orderLoading, setOrderLoading] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
+  const { formatAmount } = useCurrency();
 
   useEffect(() => {
     const raw = localStorage.getItem('uk2me-active-quote');
@@ -39,16 +40,6 @@ function QuoteContent() {
       // ignore
     }
   }, [quoteId]);
-
-  useEffect(() => {
-    if (!quote) return;
-    fetch(`/api/proxy/v1/fx?base=${quote.currency}&symbols=USD,NGN`)
-      .then((res) => res.json())
-      .then((payload) => {
-        if (payload?.ok) setRates(payload.data.rates ?? {});
-      })
-      .catch(() => undefined);
-  }, [quote]);
 
   const handleProceed = async () => {
     if (!quoteId) return;
@@ -129,34 +120,28 @@ function QuoteContent() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span>{quote.currency} {quote.subtotal.toFixed(2)}</span>
+                <span>{formatAmount(quote.subtotal, quote.currency)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Shipping</span>
-                <span>{quote.currency} {quote.shipping.toFixed(2)}</span>
+                <span>{formatAmount(quote.shipping, quote.currency)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Tax (6%)</span>
-                <span>{quote.currency} {quote.tax.toFixed(2)}</span>
+                <span>{formatAmount(quote.tax, quote.currency)}</span>
               </div>
               {quote.platformFee != null && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Platform fee</span>
-                  <span>{quote.currency} {quote.platformFee.toFixed(2)}</span>
+                  <span>{formatAmount(quote.platformFee, quote.currency)}</span>
                 </div>
               )}
             </div>
             <Separator />
             <div className="flex justify-between text-lg font-semibold">
               <span>Total</span>
-              <span>{quote.currency} {quote.total.toFixed(2)}</span>
+              <span>{formatAmount(quote.total, quote.currency)}</span>
             </div>
-            {(rates.USD || rates.NGN) && (
-              <div className="text-sm text-muted-foreground space-y-1">
-                {rates.USD ? <div>≈ USD {(quote.total * rates.USD).toFixed(2)}</div> : null}
-                {rates.NGN ? <div>≈ NGN {(quote.total * rates.NGN).toFixed(2)}</div> : null}
-              </div>
-            )}
             {orderError && <p className="text-sm text-destructive">{orderError}</p>}
             <Button className="w-full gap-2" size="lg" onClick={handleProceed} disabled={orderLoading}>
               {orderLoading ? (
