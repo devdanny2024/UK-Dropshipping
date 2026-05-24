@@ -13,6 +13,19 @@ function SimulatedSuccess({ orderId }: { orderId: string }) {
   const router = useRouter();
   const fakeOrderRef = `UK2ME-${Date.now().toString(36).toUpperCase()}`;
 
+  function continueShopping() {
+    try {
+      const raw = localStorage.getItem('uk2me-active-quote') ?? localStorage.getItem('uk2me-checkout-intent');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const items: { externalUrl?: string }[] = parsed?.items ?? parsed?.cart ?? [];
+        const url = items[0]?.externalUrl;
+        if (url) { router.push(`/preview?url=${encodeURIComponent(url)}`); return; }
+      }
+    } catch { /* fall through */ }
+    router.push('/shop');
+  }
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center py-12">
       <div className="container mx-auto px-4 max-w-lg">
@@ -46,7 +59,7 @@ function SimulatedSuccess({ orderId }: { orderId: string }) {
               <Button className="w-full gap-2" style={{ background: 'var(--brand-violet)' }} onClick={() => router.push('/orders')}>
                 <Package className="h-4 w-4" /> Track My Order
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => router.push('/shop')}>
+              <Button variant="outline" className="w-full" onClick={continueShopping}>
                 Continue Shopping
               </Button>
             </div>

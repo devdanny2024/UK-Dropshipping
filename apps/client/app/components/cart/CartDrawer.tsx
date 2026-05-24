@@ -81,7 +81,17 @@ export function CartDrawer() {
               <Button asChild className="w-full" onClick={() => setOpen(false)}>
                 <Link href="/cart">View cart &amp; checkout</Link>
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => setOpen(false)}>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setOpen(false);
+                  const last = items[items.length - 1];
+                  if (last?.externalUrl) {
+                    window.location.href = `/preview?url=${encodeURIComponent(last.externalUrl)}`;
+                  }
+                }}
+              >
                 Continue Shopping
               </Button>
             </div>
