@@ -29,6 +29,14 @@ async function proxy(request: NextRequest) {
       responseHeaders.append(key, value);
     });
 
+    // headers.forEach skips set-cookie in Node.js fetch — forward them explicitly
+    const setCookies: string[] = typeof (response.headers as any).getSetCookie === 'function'
+      ? (response.headers as any).getSetCookie()
+      : [];
+    for (const cookie of setCookies) {
+      responseHeaders.append('set-cookie', cookie);
+    }
+
     const data = await response.arrayBuffer();
     return new NextResponse(data, {
       status: response.status,
