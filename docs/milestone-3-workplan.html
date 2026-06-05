@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/>
+<title>UK2ME — Milestone 3 Work Plan</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #1f2937; font-size: 11.5px; line-height: 1.55; margin: 0; }
+  h1 { font-size: 23px; margin: 18px 0 2px; color: #4C1D95; }
+  h2 { font-size: 15px; margin: 22px 0 8px; color: #5B21B6; border-bottom: 2px solid #EDE9FE; padding-bottom: 4px; }
+  h3 { font-size: 12.5px; margin: 14px 0 4px; color: #6D28D9; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 6px; }
+  th, td { border: 1px solid #E5E7EB; padding: 6px 9px; text-align: left; vertical-align: top; }
+  th { background: #F5F3FF; color: #5B21B6; font-size: 10.5px; text-transform: uppercase; letter-spacing: .4px; }
+  code, pre { font-family: "Consolas", monospace; }
+  pre { background: #F8F7FF; border: 1px solid #EDE9FE; border-left: 3px solid #7C3AED; border-radius: 6px; padding: 10px 12px; font-size: 10.2px; overflow-x:auto; white-space: pre-wrap; }
+  code { background: #F3F0FF; padding: 1px 4px; border-radius: 3px; font-size: 10.5px; color:#5B21B6; }
+  pre code { background: none; padding: 0; color: inherit; }
+  ol, ul { margin: 4px 0 4px; padding-left: 18px; }
+  li { margin: 3px 0; }
+  em { color:#6B7280; font-style: italic; }
+  blockquote { background:#FFF7ED; border:1px solid #FED7AA; border-left:3px solid #F59E0B; border-radius:8px; padding:8px 14px; margin:10px 0; color:#92400E; }
+  blockquote p { margin:4px 0; }
+  hr { border:none; border-top:1px solid #EDE9FE; margin:16px 0; }
+  .hero { background: linear-gradient(135deg,#7C3AED 0%,#5B21B6 60%,#4C1D95 100%); color:#fff; border-radius: 14px; padding: 22px 24px; margin-bottom: 18px; }
+  .hero .kick { color:#F59E0B; letter-spacing:3px; text-transform:uppercase; font-size:10px; font-weight:700; }
+  .hero h1 { color:#fff; margin:6px 0 2px; }
+  .hero .tl { font-size:14px; font-weight:600; color:#F5F3FF; }
+  .hero .meta { color:#E9D5FF; font-size:11px; margin-top:8px; }
+</style></head>
+<body>
+<div class="hero">
+  <div class="kick">&#128230; UK2ME Online</div>
+  <h1>Milestone 3 &mdash; Work Plan</h1>
+  <div class="tl">Manual weight pricing, complaints, dispatch tracking, virtual wallet, store-fee registry &amp; role management</div>
+  <div class="meta">Project: UK2ME Revamp (monorepo &mdash; apps/client &middot; apps/admin &middot; apps/backend) &nbsp;&middot;&nbsp; Prepared: 4 June 2026 &nbsp;&middot;&nbsp; Status: Planning &rarr; ready to build</div>
+</div>
+<p><strong>Project:</strong> UK2ME Revamp (monorepo — <code>apps/client</code>, <code>apps/admin</code>, <code>apps/backend</code>)
+<strong>Prepared:</strong> 4 June 2026
+<strong>Status:</strong> Planning → ready to build</p>
+<blockquote>
+<p><strong>Scope.</strong> Seven items from the latest client notes (<strong>R9–R15</strong>). Two of them <strong>amend
+Milestone 2</strong>: the refund concept is dropped in favour of <strong>Complaints</strong> (R10), and
+money-back cases are handled through the new <strong>Virtual Wallet</strong> (R13) instead of gateway
+refunds. See §3 <em>Amendments to Milestone 2</em>.</p>
+</blockquote>
+<hr />
+<h2>1. Purpose</h2>
+<p>Milestone 2 automated invoicing, region baskets, the delivery-date engine and email
+reliability. Milestone 3 fills the operational gaps that surfaced once that flow was mapped
+end-to-end:</p>
+<ul>
+<li>Some item <strong>categories have no weight class</strong>, so the weight engine can't price Nigeria
+  postage automatically — staff need a way to quote those <strong>manually</strong> without blocking the order.</li>
+<li>"Refunds" are really <strong>complaints</strong>; actual money-back should become <strong>store credit</strong> the
+  customer can re-spend, not a gateway reversal.</li>
+<li>Customers need to <strong>always see where their order is</strong>, and to receive a <strong>tracking ID</strong> the
+  moment an order is dispatched to Nigeria.</li>
+<li>The <strong>store → UK-warehouse delivery fee</strong> is still entered by hand; it should be a
+  <strong>per-store value managed in admin</strong>.</li>
+<li>The admin needs <strong>role management</strong> — promote/demote staff without touching the database.</li>
+</ul>
+<hr />
+<h2>2. Requirements (this milestone)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Requirement</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>R9</strong></td>
+<td><strong>Manual weight pricing ("Request Weight Price").</strong> When an item's category has <strong>no weight class / weight price</strong>, the customer sees a <strong>Request Weight Price</strong> button instead of an instant quote. It notifies the backend + emails admins ("get the weight price for these items and resolve it"). Once an admin sets the manual delivery price, the customer can pay for that item.</td>
+<td>This message</td>
+</tr>
+<tr>
+<td><strong>R10</strong></td>
+<td><strong>Complaints replace refunds.</strong> Remove the refund concept. A customer raises a <strong>complaint</strong> on an order; admin reviews and resolves/rejects; emails at each step. <em>(Money-back is handled by R13.)</em></td>
+<td>This message</td>
+</tr>
+<tr>
+<td><strong>R11</strong></td>
+<td><strong>Always-visible delivery status.</strong> The order status is <strong>always shown</strong> to the customer (starting at <strong>Placed</strong>) so they know where their items are at every point.</td>
+<td>This message</td>
+</tr>
+<tr>
+<td><strong>R12</strong></td>
+<td><strong>Dispatch tracking.</strong> When an order is <strong>dispatched to Nigeria</strong>, the admin enters a <strong>Tracking ID</strong> and <strong>Delivery Company</strong>; the status changes and the customer is <strong>emailed the tracking ID when the status changes</strong>.</td>
+<td>This message</td>
+</tr>
+<tr>
+<td><strong>R13</strong></td>
+<td><strong>Virtual Wallet.</strong> If a customer has paid and an item goes <strong>out of stock</strong>, the money is returned to their <strong>virtual wallet</strong> as credit, which they can spend on another item.</td>
+<td>This message</td>
+</tr>
+<tr>
+<td><strong>R14</strong></td>
+<td><strong>Store → warehouse delivery-fee registry.</strong> The delivery fee <strong>from each store to our UK warehouse</strong> is configured <strong>per store in admin</strong> (automated into invoice math). Seeded from the client's current list; new stores added via admin.</td>
+<td>This message</td>
+</tr>
+<tr>
+<td><strong>R15</strong></td>
+<td><strong>Role management engine.</strong> Manage staff roles in admin — <strong>elevate and demote</strong> a user's role — with proper permission gating.</td>
+<td>This message</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>3. Amendments to Milestone 2</h2>
+<p>These change items already written into the M2 plan (M2 is not yet built, so this is a plan
+change, not a code rollback):</p>
+<ul>
+<li><strong>M2 R7 "Order Dispute &amp; Refund" → superseded.</strong> The dispute mechanic stays but is renamed
+  <strong>Complaint</strong> (R10) and the <strong>refund half is removed</strong>: drop <code>OrderStatus.REFUNDED</code>,
+  <code>PaymentStatus.REFUNDED</code>, and the <code>requestedRefund</code> / <code>refundAmount</code> fields from the M2
+  <code>Dispute</code> model. Any genuine money-back is issued as <strong>wallet credit</strong> (R13).</li>
+<li><strong>M2 §6 email matrix</strong> loses the "refund processed" rows and gains the complaint, weight-price,
+  dispatch-tracking and wallet rows in §6 below.</li>
+</ul>
+<p><em>(The M2 doc is left intact as the historical record; say the word if you'd like it edited in place too.)</em></p>
+<hr />
+<h2>4. Current state vs. gap</h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Already in code</th>
+<th>Gap to close</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Weight pricing</td>
+<td><code>lib/weight.ts</code> resolves weight via 5 fallbacks ending in a silent <strong>500 g absolute fallback</strong>; <code>Category</code> + <code>WeightReference</code> hold the data</td>
+<td>Detect "no real weight" (<code>source: 'fallback'</code> / category flagged) and switch to <strong>manual request</strong> instead of mis-pricing (R9)</td>
+</tr>
+<tr>
+<td>Roles</td>
+<td><code>lib/auth.ts</code> <code>requireAdmin()</code> exists, but <strong><code>User</code> has no role field</strong></td>
+<td>Add <code>Role</code> to <code>User</code>; admin UI to elevate/demote; gate endpoints by role (R15)</td>
+</tr>
+<tr>
+<td>Tracking</td>
+<td><code>Shipment { carrier, trackingNumber, status }</code> model exists but is unused in the flow</td>
+<td>Wire dispatch → create <code>Shipment</code> (company + tracking) → status change → <strong>email with tracking</strong> (R12)</td>
+</tr>
+<tr>
+<td>Stores</td>
+<td><code>AdapterState { name, domain, region, enabled }</code> already lists stores (for scraping)</td>
+<td>Add a <strong>store→warehouse fee</strong> per store, admin-managed, used by invoice math (R14)</td>
+</tr>
+<tr>
+<td>Money-back</td>
+<td>M2 planned <strong>gateway refunds</strong></td>
+<td>Replace with <strong>Virtual Wallet</strong> credit + spend (R13)</td>
+</tr>
+<tr>
+<td>Disputes</td>
+<td>M2 planned <code>Dispute</code> + refund</td>
+<td><strong>Complaint</strong> model, no refund fields (R10)</td>
+</tr>
+<tr>
+<td>Status visibility</td>
+<td><code>Order.status</code> + <code>OrderEvent[]</code> exist; client view limited</td>
+<td>Always-on <strong>status timeline</strong> for the customer (R11)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>5. Data model changes (<code>apps/backend/prisma/schema.prisma</code>)</h2>
+<p><strong>5.1 Roles (R15)</strong></p>
+<pre><code>enum Role { CUSTOMER  STAFF  ADMIN  SUPER_ADMIN }
+
+User += role Role @default(CUSTOMER)
+     +  roleUpdatedAt DateTime?
+     +  roleUpdatedById String?
+</code></pre>
+<p><code>requireAdmin()</code> and a new <code>requireRole(min)</code> read <code>User.role</code>. Only <code>SUPER_ADMIN</code> (and
+optionally <code>ADMIN</code>) may change roles; guard against <strong>self-demotion</strong> and <strong>removing the last
+admin</strong>. Every change writes an audit <code>OrderEvent</code>-style record (or a small <code>AdminAudit</code>).</p>
+<p><strong>5.2 Manual weight pricing (R9)</strong></p>
+<pre><code>Category += requiresManualWeight Boolean @default(false)   // flag categories with no weight class
+
+enum WeightPriceStatus { AUTO  REQUESTED  PRICED }
+
+OrderItem += weightStatus WeightPriceStatus @default(AUTO)
+          +  manualDeliveryPrice Float?      // admin-set Nigeria-postage price for this item
+          +  manualPriceCurrency String?
+
+model WeightPriceRequest {
+  id            String   @id @default(cuid())
+  orderId       String
+  orderItemId   String?
+  productUrl     String
+  category       String?
+  status         WeightPriceStatus @default(REQUESTED)
+  resolvedPrice  Float?
+  currency       String?
+  requestedById  String?
+  resolvedById   String?
+  createdAt      DateTime @default(now())
+  resolvedAt     DateTime?
+  order          Order    @relation(fields: [orderId], references: [id])
+}
+</code></pre>
+<p><strong>Trigger:</strong> at quote/checkout, if <code>resolveWeight()</code> returns <code>source: 'fallback'</code> <strong>or</strong> the
+item's <code>Category.requiresManualWeight</code> is true, the item is marked <code>weightStatus = REQUESTED</code>
+and shown the <strong>Request Weight Price</strong> button (no auto Nigeria-postage line). An order with any
+<code>REQUESTED</code> item <strong>cannot be invoiced/paid</strong> until every item is <code>PRICED</code>.</p>
+<blockquote>
+<p><strong>Open question (§9.1):</strong> whether the customer pays the item now and the delivery price later
+(a <em>deposit</em> model), or the order simply waits until the manual delivery price is set and is
+then paid in one go. This plan assumes the <strong>single-payment</strong> model.</p>
+</blockquote>
+<p><strong>5.3 Complaints (R10)</strong> <em>(replaces M2 §4.6 Dispute; no refund fields)</em></p>
+<pre><code>enum ComplaintStatus { OPEN  UNDER_REVIEW  RESOLVED  REJECTED }
+
+model Complaint {
+  id             String   @id @default(cuid())
+  orderId        String
+  userId         String?
+  reason         String          // category + free text
+  detail         String?
+  status         ComplaintStatus @default(OPEN)
+  resolutionNote String?
+  resolvedById   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  resolvedAt     DateTime?
+  order          Order    @relation(fields: [orderId], references: [id])
+}
+</code></pre>
+<p><strong>5.4 Virtual Wallet (R13)</strong></p>
+<pre><code>enum WalletTxnType { CREDIT  DEBIT }
+
+model Wallet {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User    @relation(fields: [userId], references: [id])
+  txns      WalletTransaction[]
+}
+
+model WalletTransaction {
+  id           String   @id @default(cuid())
+  walletId     String
+  type         WalletTxnType
+  amount       Float
+  currency     String          // GBP | USD — credit is currency-specific
+  reason       String          // e.g. &quot;out_of_stock:ORDER123&quot;
+  orderId      String?
+  paymentId    String?
+  balanceAfter Float           // running balance for this currency
+  createdById  String?
+  createdAt    DateTime @default(now())
+  wallet       Wallet   @relation(fields: [walletId], references: [id])
+}
+</code></pre>
+<p>Balances are tracked <strong>per currency</strong> (a £ credit pays UK orders, a $ credit pays US orders).
+<strong>Out-of-stock:</strong> admin issues a <code>CREDIT</code> against the affected order; customer is emailed.
+<strong>Spend:</strong> at invoice/checkout the customer may apply wallet balance (same currency) — recorded
+as a <code>DEBIT</code> plus a <code>Payment { provider: "wallet" }</code>, with the gateway charged only the remainder.</p>
+<p><strong>5.5 Dispatch tracking (R12)</strong> — reuse the existing <code>Shipment</code> model</p>
+<pre><code>// On the PROCESSING/AWAITING_PURCHASE → SHIPPED transition, admin must supply:
+Shipment { carrier = &lt;Delivery Company&gt;, trackingNumber = &lt;Tracking ID&gt;, status = IN_TRANSIT }
+// SHIPPED = &quot;dispatched to Nigeria&quot;. Email fires on the status change (R5 path) with the
+// tracking ID + company. Optional: carrier→tracking-URL templates in AppSetting.
+</code></pre>
+<p>No new model needed; we only <strong>require</strong> carrier + tracking when moving to <code>SHIPPED</code> and hook
+the email. <em>(Open question §9.5: keep the label <code>SHIPPED</code> or rename to <code>DISPATCHED</code>.)</em></p>
+<p><strong>5.6 Store → warehouse fee (R14)</strong> — extend <code>AdapterState</code> (already the per-store registry)</p>
+<pre><code>AdapterState += storeToWarehouseFee Float?
+             +  storeFeeCurrency    String?   // GBP | USD (defaults from region)
+</code></pre>
+<p>Admin gets a column/field to set the fee per store; the invoice engine looks up each store
+group's fee automatically (replacing the hand-typed store postage in M2 §4.3). A store with no
+fee set surfaces an <strong>admin warning</strong> rather than silently charging £0. Seeded from the client's
+current list; new stores added in admin. <em>(If stores without a scraper adapter are needed, a
+standalone <code>Store</code> table is the alternative — see §9.4.)</em></p>
+<p><strong>5.7 Always-visible status (R11)</strong> — no new model</p>
+<p>Driven by <code>Order.status</code> (always set, defaulting to <code>PLACED</code>) + the <code>OrderEvent[]</code> history. The
+customer order page renders a fixed <strong>status timeline</strong> (Placed → Invoiced → Paid/Processing →
+Dispatched → Delivered, with Complaint/Cancelled side states) showing the current step and
+timestamps from <code>OrderEvent</code>.</p>
+<hr />
+<h2>6. Email notification matrix (additions)</h2>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th style="text-align: center;">Customer</th>
+<th style="text-align: center;">Admin</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Weight price requested</strong></td>
+<td style="text-align: center;">✓ (received)</td>
+<td style="text-align: center;">✓ <strong>(items + links to price)</strong></td>
+</tr>
+<tr>
+<td><strong>Weight price resolved</strong></td>
+<td style="text-align: center;">✓ (now payable)</td>
+<td style="text-align: center;">—</td>
+</tr>
+<tr>
+<td><strong>Order dispatched</strong></td>
+<td style="text-align: center;">✓ <strong>(Tracking ID + company)</strong></td>
+<td style="text-align: center;">—</td>
+</tr>
+<tr>
+<td><strong>Complaint opened</strong></td>
+<td style="text-align: center;">✓ (received)</td>
+<td style="text-align: center;">✓ (alert)</td>
+</tr>
+<tr>
+<td><strong>Complaint status changed / resolved / rejected</strong></td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">—</td>
+</tr>
+<tr>
+<td><strong>Wallet credited (e.g. out of stock)</strong></td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>Wallet used at checkout</td>
+<td style="text-align: center;">✓ (receipt shows credit applied)</td>
+<td style="text-align: center;">—</td>
+</tr>
+</tbody>
+</table>
+<p>All routed through the M2 <strong>WS-5 reliable-mailer</strong> path (log + retry + visible status).</p>
+<hr />
+<h2>7. Workstreams</h2>
+<blockquote>
+<p>Each task lists a <strong>verify</strong> check so progress is testable.</p>
+</blockquote>
+<h3>WS-10 — Role management engine (R15)  <em>~2 days</em></h3>
+<ol>
+<li>Migrate <code>Role</code> enum + <code>User.role</code> (+ audit fields); backfill existing admins. → <em>verify: <code>prisma migrate</code> clean; current admins keep access.</em></li>
+<li><code>requireRole(min)</code> helper; gate admin endpoints by role. → <em>verify: a <code>STAFF</code> user is blocked from a <code>SUPER_ADMIN</code>-only route.</em></li>
+<li>Admin <strong>Users → role</strong> UI: elevate/demote, with guards (no self-demotion, keep ≥1 admin). → <em>verify: promoting a user takes effect on next request; last-admin demotion is refused.</em></li>
+</ol>
+<h3>WS-11 — Manual weight pricing (R9)  <em>~2.5 days</em></h3>
+<ol>
+<li>Migrate §5.2 (<code>Category.requiresManualWeight</code>, <code>OrderItem</code> fields, <code>WeightPriceRequest</code>). → <em>verify: migrate clean; types compile.</em></li>
+<li>Quote/checkout: detect no-weight items (<code>source:'fallback'</code> or flagged category) → mark <code>REQUESTED</code>, hide auto postage. → <em>verify: an item in a no-weight category shows </em><em>Request Weight Price</em><em>, not a price.</em></li>
+<li><strong>Request Weight Price</strong> button → creates <code>WeightPriceRequest</code>, emails admins with item + link. → <em>verify: clicking it creates the request and sends the admin email.</em></li>
+<li>Admin <strong>weight-price queue</strong>: set the manual delivery price → item <code>PRICED</code>, customer emailed; order becomes invoiceable/payable. → <em>verify: pricing the item unblocks payment; customer gets the "now payable" email.</em></li>
+</ol>
+<h3>WS-12 — Store → warehouse fee registry (R14)  <em>~1.5 days</em></h3>
+<ol>
+<li>Migrate §5.6 fee fields on <code>AdapterState</code>; seed from the client's list (when supplied). → <em>verify: stores list shows editable fees.</em></li>
+<li>Admin UI to set/add store fees; invoice engine pulls the per-store fee automatically. → <em>verify: changing a store's fee changes the next invoice's store-postage line; a missing fee shows an admin warning.</em></li>
+</ol>
+<h3>WS-13 — Dispatch tracking + status email (R12)  <em>~1.5 days</em></h3>
+<ol>
+<li>Admin "Mark dispatched" action requires <strong>Delivery Company + Tracking ID</strong> → writes <code>Shipment</code>, moves order to <code>SHIPPED</code>. → <em>verify: dispatch without tracking is refused; with it, a <code>Shipment</code> row is created.</em></li>
+<li>Email on the dispatch status change including tracking ID + company (+ optional tracking URL). → <em>verify: the customer receives the dispatch email with the correct tracking ID.</em></li>
+</ol>
+<h3>WS-14 — Always-visible status timeline (R11)  <em>~1 day</em></h3>
+<ol>
+<li>Customer order page renders the fixed status timeline from <code>Order.status</code> + <code>OrderEvent</code>. → <em>verify: a placed order shows </em><em>Placed</em><em> and lights up later steps as events occur.</em></li>
+<li>Ensure every status transition writes an <code>OrderEvent</code> (so the timeline is complete). → <em>verify: each transition appears with a timestamp.</em></li>
+</ol>
+<h3>WS-15 — Virtual Wallet (R13)  <em>~3 days</em></h3>
+<ol>
+<li>Migrate §5.4 (<code>Wallet</code>, <code>WalletTransaction</code>). → <em>verify: migrate clean; a wallet is auto-created per user on first use.</em></li>
+<li><strong>Out-of-stock → credit:</strong> admin action on an order/item issues a <code>CREDIT</code> (currency-correct), writes <code>balanceAfter</code>, emails the customer. → <em>verify: crediting raises the customer's balance and sends the email.</em></li>
+<li><strong>Spend:</strong> checkout/invoice "Apply wallet credit" debits the wallet (same currency) and charges the gateway only the remainder via a <code>Payment{provider:"wallet"}</code> + gateway payment. → <em>verify: a part-wallet payment records both a <code>DEBIT</code> and the gateway charge; totals reconcile.</em></li>
+<li>Client <strong>Wallet page</strong>: balance(s) per currency + transaction history. → <em>verify: page matches the ledger.</em></li>
+</ol>
+<h3>WS-16 — Complaints (R10)  <em>~2 days</em>  <em>(replaces M2 WS-8/WS-9 refund parts)</em></h3>
+<ol>
+<li>Migrate §5.3 (<code>Complaint</code>, <code>ComplaintStatus</code>); <strong>remove</strong> the M2 refund enums/fields from the plan's schema. → <em>verify: migrate clean; no <code>REFUNDED</code> states remain.</em></li>
+<li>Client <strong>"Raise a complaint"</strong> on eligible orders → form (reason + detail) → <code>Complaint(OPEN)</code> + customer/admin emails. → <em>verify: submitting creates the complaint and both emails fire.</em></li>
+<li>Admin <strong>Complaints</strong> list/detail → <code>UNDER_REVIEW</code> → <strong>Resolve/Reject</strong> with note; each transition emails the customer. → <em>verify: resolving emails the customer and records the note + timestamp.</em></li>
+</ol>
+<hr />
+<h2>8. Sequencing &amp; estimate</h2>
+<pre><code>WS-10 roles ─────────────► (gates the new admin screens)
+WS-11 weight pricing ─────► touches checkout + invoice (coordinate with M2 WS-2/WS-3)
+WS-12 store fees ─────────► feeds invoice math (M2 WS-2)
+WS-13 dispatch tracking ──► uses M2 WS-5 mailer
+WS-14 status timeline ────► client order page
+WS-15 wallet ────────────► checkout/invoice payment path (M2 WS-4)
+WS-16 complaints ────────► replaces M2 WS-8; uses M2 WS-5 mailer
+</code></pre>
+<p><strong>Indicative effort:</strong> WS-10 ~2 · WS-11 ~2.5 · WS-12 ~1.5 · WS-13 ~1.5 · WS-14 ~1 · WS-15 ~3 ·
+WS-16 ~2 → <strong>~13–14 working days</strong>. WS-11, WS-12 and WS-15 should land alongside the M2
+invoice/payment work since they share those code paths; WS-10 (roles) is a clean prerequisite
+for the new admin screens and can start immediately.</p>
+<hr />
+<h2>9. Acceptance criteria (definition of done)</h2>
+<ul>
+<li>[ ] Items in a <strong>no-weight category</strong> show <strong>Request Weight Price</strong>; an order with unpriced items <strong>cannot be paid</strong> until an admin sets the manual price; both parties are emailed at request and resolution.</li>
+<li>[ ] <strong>Refunds are gone</strong>; customers raise <strong>complaints</strong>, admins resolve/reject, every step emails the customer.</li>
+<li>[ ] The customer <strong>always sees the order status</strong>, starting at <strong>Placed</strong>, on a timeline that fills in as events occur.</li>
+<li>[ ] Marking an order <strong>dispatched</strong> requires a <strong>Delivery Company + Tracking ID</strong> and emails the customer the tracking ID <strong>on the status change</strong>.</li>
+<li>[ ] An <strong>out-of-stock</strong> item can be returned to the customer's <strong>virtual wallet</strong>; the customer can <strong>spend that credit</strong> on another order; balances and ledger are correct per currency.</li>
+<li>[ ] <strong>Store → warehouse fees</strong> are set <strong>per store in admin</strong> and applied automatically by the invoice engine; missing fees warn rather than charge £0.</li>
+<li>[ ] Admins can <strong>promote/demote</strong> user roles in admin, with guards (no self-demotion, ≥1 admin retained); endpoints are gated by role.</li>
+</ul>
+<hr />
+<h2>10. Open questions (confirm before/early in build)</h2>
+<ol>
+<li><strong>Weight "deposit" model (R9).</strong> Does the customer pay for the item now and the (manual) delivery price later, or wait and pay once in full after the price is set? <em>(Plan assumes single payment after resolution.)</em></li>
+<li><strong>Wallet currency &amp; withdrawal (R13).</strong> Confirm credits are <strong>per-currency</strong> (£ credit → UK orders only, $ → US). Can wallet credit ever be <strong>withdrawn to bank</strong>, or only spent on-site? Does a credit <strong>expire</strong>?</li>
+<li><strong>Roles (R15).</strong> Confirm the role set (<code>CUSTOMER / STAFF / ADMIN / SUPER_ADMIN</code>?) and <strong>who may change roles</strong> (super-admin only?). What can <code>STAFF</code> do vs <code>ADMIN</code>?</li>
+<li><strong>Store fee shape (R14).</strong> Is the store→warehouse fee <strong>flat per order from that store</strong>, <strong>per item</strong>, or <strong>per kg</strong>? Currency per store/region? Send the <strong>current store list</strong> to seed.</li>
+<li><strong>Dispatch label (R12).</strong> Keep status <code>SHIPPED</code>, or rename to <code>DISPATCHED</code> / "In Delivery"? Do you want per-carrier <strong>tracking-URL</strong> links in the email?</li>
+<li><strong>Complaint scope (R10).</strong> Which order statuses can a customer complain about, and what <strong>reason categories</strong> should the form offer?</li>
+<li><strong>Out-of-stock trigger (R13).</strong> Admin-only, manual? Is <strong>partial</strong> out-of-stock supported (credit some items, keep the rest), with the order/invoice adjusted?</li>
+<li><strong>Status timeline (R11).</strong> Confirm the exact customer-facing <strong>step labels</strong> to display.</li>
+</ol>
+<hr />
+<p><em>UK2ME — Milestone 3 Work Plan · Prepared by Kayode Soliu · 4 June 2026</em></p>
+</body></html>

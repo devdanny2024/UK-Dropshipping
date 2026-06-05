@@ -9,13 +9,15 @@ import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Separator } from '@/app/components/ui/separator';
 import { Badge } from '@/app/components/ui/badge';
-import { useCart } from '@/app/components/cart/use-cart';
+import { useCart, REGION_CURRENCY, REGION_SYMBOL } from '@/app/components/cart/use-cart';
 
 type DeliveryType = 'door' | 'pickup';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, subtotal, clear } = useCart();
+  const { items, subtotal, clear, region } = useCart();
+  const currency = REGION_CURRENCY[region];
+  const symbol = REGION_SYMBOL[region];
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('door');
   const [doorFee, setDoorFee] = useState(15);
   const [pickupFee, setPickupFee] = useState(0);
@@ -63,6 +65,8 @@ export default function CheckoutPage() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
+          region,
+          currency,
           items: items.map((item) => ({
             name: item.name,
             imageUrl: item.imageUrl,
@@ -71,6 +75,7 @@ export default function CheckoutPage() {
             externalUrl: item.externalUrl,
             productCode: item.productCode,
             categoryName: item.categoryName,
+            region: item.region ?? region,
           })),
           address: {
             recipientName: form.recipientName,
@@ -151,7 +156,7 @@ export default function CheckoutPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">Delivered to your address</p>
                     <p className="text-sm font-bold mt-2" style={{ color: 'var(--brand-violet)' }}>
-                      {doorFee === 0 ? 'Free' : `+£${doorFee.toFixed(2)}`}
+                      {doorFee === 0 ? 'Free' : `+${symbol}${doorFee.toFixed(2)}`}
                     </p>
                   </button>
 
@@ -171,7 +176,7 @@ export default function CheckoutPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">Collect from our pickup point</p>
                     <p className="text-sm font-bold mt-2" style={{ color: 'var(--brand-violet)' }}>
-                      {pickupFee === 0 ? 'Free' : `+£${pickupFee.toFixed(2)}`}
+                      {pickupFee === 0 ? 'Free' : `+${symbol}${pickupFee.toFixed(2)}`}
                     </p>
                   </button>
                 </CardContent>
@@ -264,7 +269,7 @@ export default function CheckoutPage() {
                             <p className="text-xs font-medium truncate">{item.name}</p>
                             <p className="text-xs text-muted-foreground">×{item.quantity}</p>
                           </div>
-                          <span className="text-xs font-semibold shrink-0">£{((item.priceGBP ?? 0) * item.quantity).toFixed(2)}</span>
+                          <span className="text-xs font-semibold shrink-0">{symbol}{((item.priceGBP ?? 0) * item.quantity).toFixed(2)}</span>
                         </div>
                       );
                     })}
@@ -273,17 +278,17 @@ export default function CheckoutPage() {
                   <div className="space-y-1.5 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Subtotal</span>
-                      <span>£{cartTotal.toFixed(2)}</span>
+                      <span>{symbol}{cartTotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Delivery</span>
-                      <span>{deliveryFee === 0 ? 'Free' : `£${deliveryFee.toFixed(2)}`}</span>
+                      <span>{deliveryFee === 0 ? 'Free' : `${symbol}${deliveryFee.toFixed(2)}`}</span>
                     </div>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-bold text-base">
                     <span>Total</span>
-                    <span style={{ color: 'var(--brand-violet)' }}>£{grandTotal.toFixed(2)}</span>
+                    <span style={{ color: 'var(--brand-violet)' }}>{symbol}{grandTotal.toFixed(2)}</span>
                   </div>
 
                   {error && (

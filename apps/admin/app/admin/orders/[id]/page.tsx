@@ -10,6 +10,8 @@ import { Separator } from '@/app/components/ui/separator';
 import { StatusBadge } from '@/app/components/StatusBadge';
 import { Timeline } from '@/app/components/Timeline';
 import { Badge } from '@/app/components/ui/badge';
+import { InvoicePanel } from './InvoicePanel';
+import { DispatchAction, WalletCreditAction } from './OrderActions';
 
 type OrderDetail = {
   id: string;
@@ -77,6 +79,9 @@ export default function AdminOrderDetailPage() {
   const firstItem = order.items[0];
   const productSnapshot = firstItem?.productSnapshot;
 
+  const updateStatus = (status: string) =>
+    setOrder((prev) => (prev ? { ...prev, status } : prev));
+
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center gap-4">
@@ -101,6 +106,7 @@ export default function AdminOrderDetailPage() {
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="attempts">Purchase Attempts</TabsTrigger>
           <TabsTrigger value="shipments">Shipments</TabsTrigger>
+          <TabsTrigger value="manage">Manage</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -324,6 +330,14 @@ export default function AdminOrderDetailPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="manage" className="space-y-6">
+          <InvoicePanel orderId={order.id} onStatusChange={updateStatus} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DispatchAction orderId={order.id} onStatusChange={updateStatus} />
+            <WalletCreditAction orderId={order.id} currency={order.currency} />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

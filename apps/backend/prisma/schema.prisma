@@ -9,6 +9,8 @@ datasource db {
 
 enum OrderStatus {
   PLACED
+  PENDING_INVOICE
+  INVOICED
   PROCESSING
   AWAITING_PURCHASE
   SHIPPED
@@ -20,6 +22,55 @@ enum PaymentStatus {
   RECEIVED
   CAPTURED
   FAILED
+}
+
+// M2/M3 — region drives currency, service-charge rule and basket separation.
+enum Region {
+  UK
+  US
+}
+
+// M2 — two independent delivery legs, each STD or EXPRESS (EXPRESS is UK-only).
+enum DeliverySpeed {
+  STD
+  EXPRESS
+}
+
+// M2 — invoice lifecycle.
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  VOID
+}
+
+// M3 R15 — user roles for the admin role-management engine.
+enum Role {
+  CUSTOMER
+  STAFF
+  ADMIN
+  SUPER_ADMIN
+}
+
+// M3 R9 — per-item weight-pricing state (manual quote for no-weight categories).
+enum WeightPriceStatus {
+  AUTO
+  REQUESTED
+  PRICED
+}
+
+// M3 R10 — complaints (replaces the M2 refund/dispute concept).
+enum ComplaintStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+// M3 R13 — virtual wallet ledger entry direction.
+enum WalletTxnType {
+  CREDIT
+  DEBIT
 }
 
 enum PurchaseAttemptStatus {
@@ -56,11 +107,20 @@ model User {
   phone     String?
   emailVerifiedAt DateTime?
   createdAt DateTime  @default(now())
+  // M3 R15 — role management
+  role            Role      @default(CUSTOMER)
+  roleUpdatedAt   DateTime?
+  roleUpdatedById String?
   addresses Address[]
   orders    Order[]
   sessions  Session[]
   emailVerifications EmailVerificationToken[]
   passwordResets PasswordResetToken[]
+  // M3 R13 — virtual wallet
+  wallet    Wallet?
+  complaints Complaint[]
+
+  @@index([role])
 }
 
 model Address {
@@ -119,10 +179,20 @@ model Order {
   userId     String?
   addressId  String?
   status     OrderStatus
+  // M2 — region drives currency + pricing rules (UK £ / US $)
+  region     Region       @default(UK)
   currency   String
   total      Float
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
+  // M2 — Delivery Engine snapshot (taken at quote time so estimates don't drift)
+  leg1Speed       DeliverySpeed?
+  leg2Speed       DeliverySpeed?
+  despatchDate    DateTime?
+  estDeliveryMin  DateTime?
+  estDeliveryMax  DateTime?
+  deliveryQuotedAt DateTime?
+  deliveryNote    Json?
   user       User?        @relation(fields: [userId], references: [id])
   address    Address?     @relation(fields: [addressId], references: [id])
   items      OrderItem[]
@@ -130,6 +200,12 @@ model Order {
   attempts   PurchaseAttempt[]
   shipments  Shipment[]
   events     OrderEvent[]
+  invoice    Invoice?
+  weightPriceRequests WeightPriceRequest[]
+  complaints Complaint[]
+
+  @@index([status])
+  @@index([region])
 }
 
 model OrderItem {
@@ -141,6 +217,10 @@ model OrderItem {
   color             String
   unitPrice         Float
   total             Float
+  // M3 R9 — manual weight pricing for no-weight categories
+  weightStatus        WeightPriceStatus @default(AUTO)
+  manualDeliveryPrice Float?
+  manualPriceCurrency String?
   order             Order           @relation(fields: [orderId], references: [id])
   productSnapshot   ProductSnapshot @relation(fields: [productSnapshotId], references: [id])
 }
@@ -234,6 +314,8 @@ model Category {
   sortOrder                    Int      @default(0)
   defaultWeightGrams           Int?
   defaultChargeableWeightGrams Int?
+  // M3 R9 — flag categories that have no weight class (force manual weight pricing)
+  requiresManualWeight         Boolean  @default(false)
   createdAt                    DateTime @default(now())
   updatedAt                    DateTime @updatedAt
   products                     Product[]
@@ -278,6 +360,9 @@ model AdapterState {
   status      AdapterHealthStatus @default(UNKNOWN)
   lastCheckAt DateTime?
   notes       String?
+  // M3 R14 — store → UK-warehouse delivery fee (admin-managed, used by invoice math)
+  storeToWarehouseFee Float?
+  storeFeeCurrency    String?
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
@@ -312,4 +397,123 @@ model WeightReference {
   @@unique([category, label])
   @@index([category])
   @@index([isNamedProduct])
+}
+
+// ── M2: Invoicing ───────────────────────────────────────────────────────────
+
+model Invoice {
+  id                       String        @id @default(cuid())
+  orderId                  String        @unique
+  invoiceNumber            String        @unique
+  region                   Region
+  currency                 String
+  status                   InvoiceStatus @default(DRAFT)
+  // Money breakdown (mirrors how staff build invoices in Excel)
+  itemsSubtotal            Float         @default(0)
+  storePostage             Float         @default(0)
+  salesTax                 Float         @default(0)
+  internationalTransferFee Float         @default(0)
+  serviceCharge            Float         @default(0)
+  nigeriaPostage           Float         @default(0)
+  domesticPostage          Float         @default(0)
+  total                    Float         @default(0)
+  fxRateSnapshot           Float?
+  notes                    String?
+  sentAt                   DateTime?
+  dueAt                    DateTime?
+  paidAt                   DateTime?
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+  order                    Order         @relation(fields: [orderId], references: [id])
+  lineItems                InvoiceLineItem[]
+
+  @@index([status])
+}
+
+model InvoiceLineItem {
+  id           String  @id @default(cuid())
+  invoiceId    String
+  storeName    String          // group key — all items from one store sit together
+  productTitle String
+  productUrl   String
+  size         String?
+  color        String?
+  qty          Int
+  unitPrice    Float
+  lineTotal    Float
+  weightGrams  Int?
+  invoice      Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+// ── M3 R9: Manual weight pricing ────────────────────────────────────────────
+
+model WeightPriceRequest {
+  id            String            @id @default(cuid())
+  orderId       String
+  orderItemId   String?
+  productUrl    String
+  category      String?
+  status        WeightPriceStatus @default(REQUESTED)
+  resolvedPrice Float?
+  currency      String?
+  requestedById String?
+  resolvedById  String?
+  createdAt     DateTime          @default(now())
+  resolvedAt    DateTime?
+  order         Order             @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@index([status])
+}
+
+// ── M3 R10: Complaints (replaces M2 refund/dispute) ─────────────────────────
+
+model Complaint {
+  id             String          @id @default(cuid())
+  orderId        String
+  userId         String?
+  reason         String
+  detail         String?
+  status         ComplaintStatus @default(OPEN)
+  resolutionNote String?
+  resolvedById   String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  resolvedAt     DateTime?
+  order          Order           @relation(fields: [orderId], references: [id])
+  user           User?           @relation(fields: [userId], references: [id])
+
+  @@index([orderId])
+  @@index([status])
+}
+
+// ── M3 R13: Virtual Wallet ──────────────────────────────────────────────────
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+  txns      WalletTransaction[]
+}
+
+model WalletTransaction {
+  id           String        @id @default(cuid())
+  walletId     String
+  type         WalletTxnType
+  amount       Float
+  currency     String        // GBP | USD — balances are tracked per currency
+  reason       String
+  orderId      String?
+  paymentId    String?
+  balanceAfter Float
+  createdById  String?
+  createdAt    DateTime      @default(now())
+  wallet       Wallet        @relation(fields: [walletId], references: [id])
+
+  @@index([walletId])
+  @@index([currency])
 }

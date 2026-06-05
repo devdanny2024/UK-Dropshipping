@@ -6,7 +6,7 @@ import { getClientSession } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
 import { createOrderEvent } from '../../../../lib/events';
 import { sendMail } from '../../../../lib/mailer';
-import { orderReceivedEmail } from '../../../../lib/emails';
+import { orderReceivedEmail, adminOrderPlacedEmail } from '../../../../lib/emails';
 
 async function getDeliveryFee(type: 'door' | 'pickup'): Promise<number> {
   const key = type === 'door' ? 'delivery_door_fee_gbp' : 'delivery_pickup_fee_gbp';
@@ -86,6 +86,13 @@ export async function POST(request: NextRequest) {
   if (user?.email) {
     const mail = orderReceivedEmail(user.name ?? '', order.id, order.total, order.currency);
     await sendMail({ to: user.email, ...mail });
+  }
+
+  const adminRecipient = process.env.ADMIN_NOTIFY_EMAIL ?? process.env.SMTP_FROM ?? process.env.SMTP_USER ?? '';
+  if (adminRecipient) {
+    const productLinks = snapshots.map((snap) => snap.url);
+    const adminMail = adminOrderPlacedEmail(order.id, order.region, productLinks);
+    await sendMail({ to: adminRecipient, ...adminMail });
   }
 
   return ok({

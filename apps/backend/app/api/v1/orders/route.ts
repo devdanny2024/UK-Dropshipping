@@ -6,7 +6,7 @@ import { prisma } from '../../../../lib/prisma';
 import { createOrderEvent } from '../../../../lib/events';
 import { getClientSession } from '../../../../lib/auth';
 import { sendMail } from '../../../../lib/mailer';
-import { orderReceivedEmail } from '../../../../lib/emails';
+import { orderReceivedEmail, adminOrderPlacedEmail } from '../../../../lib/emails';
 
 export async function POST(request: NextRequest) {
   const session = await getClientSession(request);
@@ -53,6 +53,13 @@ export async function POST(request: NextRequest) {
   if (user?.email) {
     const mail = orderReceivedEmail(user.name ?? '', order.id, order.total, order.currency);
     await sendMail({ to: user.email, ...mail });
+  }
+
+  const adminRecipient = process.env.ADMIN_NOTIFY_EMAIL ?? process.env.SMTP_FROM ?? process.env.SMTP_USER ?? '';
+  if (adminRecipient) {
+    const productLinks = quote.productSnapshot?.url ? [quote.productSnapshot.url] : [];
+    const adminMail = adminOrderPlacedEmail(order.id, order.region, productLinks);
+    await sendMail({ to: adminRecipient, ...adminMail });
   }
 
   return ok({

@@ -37,24 +37,38 @@ function getTransport(): Transporter | null {
   return null;
 }
 
-export async function sendMail(payload: MailPayload): Promise<void> {
+export type MailResult = { ok: boolean; skipped?: boolean; error?: string };
+
+/**
+ * Send an email. Reliability (M2 R5): retries once on failure, never throws, and
+ * returns a status so callers can record success/failure (e.g. on an OrderEvent)
+ * instead of silently dropping mail. Backward compatible — existing callers that
+ * ignore the return value are unaffected.
+ */
+export async function sendMail(payload: MailPayload): Promise<MailResult> {
   const transport = getTransport();
   if (!transport) {
     console.log('[mail] skipped — no SMTP configured:', payload.subject, '->', payload.to);
-    return;
+    return { ok: false, skipped: true };
   }
 
   const from = process.env.SMTP_FROM ?? 'UK2ME <no-reply@uk2meonline.com>';
-  try {
-    await transport.sendMail({
-      from,
-      to: payload.to,
-      subject: payload.subject,
-      text: payload.text,
-      html: payload.html,
-    });
-  } catch (err) {
-    _transport = null;
-    console.error('[mail] send failed:', payload.subject, '->', payload.to, err);
+  const message = { from, to: payload.to, subject: payload.subject, text: payload.text, html: payload.html };
+
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      await transport.sendMail(message);
+      if (attempt > 1) console.log('[mail] sent on retry:', payload.subject, '->', payload.to);
+      return { ok: true };
+    } catch (err) {
+      _transport = null;
+      console.error(`[mail] send failed (attempt ${attempt}/2):`, payload.subject, '->', payload.to, err);
+      if (attempt === 2) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      }
+      // rebuild transport for the retry
+      getTransport();
+    }
   }
+  return { ok: false, error: 'unreachable' };
 }

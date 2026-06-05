@@ -2,28 +2,48 @@
 
 import { ShoppingCart, ExternalLink } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
-import { useCart } from '@/app/components/cart/use-cart';
+import { useCart, type Region } from '@/app/components/cart/use-cart';
 
-export function ProductActions({ product, imageUrl }: { product: any; imageUrl: string }) {
-  const { addItem } = useCart();
+export function ProductActions({
+  product,
+  imageUrl,
+  region = 'UK',
+}: {
+  product: any;
+  imageUrl: string;
+  region?: Region;
+}) {
+  const { addItem, canAddItem, items } = useCart();
+
+  const item = {
+    productId: product.id,
+    name: product.name,
+    slug: product.slug,
+    imageUrl,
+    priceGBP: product.priceGBP ?? undefined,
+    quantity: 1,
+    externalUrl: product.externalUrl ?? undefined,
+    categoryName: product.category?.name,
+    region,
+  };
+
+  const blocked = items.length > 0 && !canAddItem(item);
+
+  const handleAdd = () => {
+    if (blocked) {
+      const ok = window.confirm(
+        `Your basket has ${items.length} item(s) from a different region. ` +
+          'You can only buy from one region (UK or US) per basket. Clear it and start a new basket?'
+      );
+      if (!ok) return;
+      useCart.getState().setRegion(region);
+    }
+    addItem(item);
+  };
 
   return (
     <div className="flex flex-col gap-3">
-      <Button
-        className="gap-2"
-        onClick={() =>
-          addItem({
-            productId: product.id,
-            name: product.name,
-            slug: product.slug,
-            imageUrl,
-            priceGBP: product.priceGBP ?? undefined,
-            quantity: 1,
-            externalUrl: product.externalUrl ?? undefined,
-            categoryName: product.category?.name
-          })
-        }
-      >
+      <Button className="gap-2" onClick={handleAdd}>
         <ShoppingCart className="h-4 w-4" />
         Add to cart
       </Button>

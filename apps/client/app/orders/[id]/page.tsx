@@ -7,6 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/ca
 import { Button } from '@/app/components/ui/button';
 import { StatusBadge } from '@/app/components/StatusBadge';
 import { AccountShell } from '@/app/components/AccountShell';
+import { OrderStatusTimeline } from '@/app/components/OrderStatusTimeline';
+import { OrderInvoice } from '@/app/components/OrderInvoice';
+import { OrderComplaints } from '@/app/components/OrderComplaints';
+import { WeightPriceRequest } from '@/app/components/WeightPriceRequest';
 
 type OrderEvent = { id: string; type: string; message: string; createdAt: string };
 type Shipment = { id: string; carrier: string; trackingNumber: string; status: string };
@@ -22,6 +26,7 @@ type OrderDetail = {
     size: string;
     color: string;
     unitPrice: number;
+    weightStatus?: string;
     productSnapshot?: { title?: string; url?: string; imageUrl?: string };
   }>;
   events: OrderEvent[];
@@ -105,6 +110,11 @@ export default function ClientTrackingPage() {
               </div>
             </div>
 
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Status</h3>
+              <OrderStatusTimeline status={order.status} />
+            </div>
+
             {order.events.length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold mb-3">Timeline</h3>
@@ -152,6 +162,12 @@ export default function ClientTrackingPage() {
             </div>
           </CardContent>
         </Card>
+
+        <OrderInvoice orderId={order.id} currency={order.currency} />
+
+        <WeightPriceRequest orderId={order.id} items={order.items} />
+
+        <OrderComplaints orderId={order.id} />
       </div>
     </AccountShell>
   );

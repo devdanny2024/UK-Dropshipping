@@ -13,7 +13,8 @@ import {
   Package,
   Shield,
   Percent,
-  Scale
+  Scale,
+  MessageSquareWarning
 } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { ScrollArea } from '@/app/components/ui/scroll-area';
@@ -25,6 +26,8 @@ const menuItems = [
   { href: '/admin/products', label: 'Products', icon: Package },
   { href: '/admin/purchase-queue', label: 'Purchase Queue', icon: Clock },
   { href: '/admin/shipments', label: 'Shipments', icon: Truck },
+  { href: '/admin/complaints', label: 'Complaints', icon: MessageSquareWarning },
+  { href: '/admin/weight-price-requests', label: 'Weight Price Requests', icon: Scale },
   { href: '/admin/adapters', label: 'Store Adapters', icon: Store },
   { href: '/admin/finance', label: 'Finance', icon: Percent },
   { href: '/admin/weight-references', label: 'Weight References', icon: Scale },

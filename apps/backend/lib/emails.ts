@@ -199,3 +199,127 @@ export function shipmentDispatchedEmail(
   const text = `Your order ${orderId} has shipped!\n\nCarrier: ${carrier}\nTracking: ${trackingNumber}\n\nTrack: ${url}`;
   return { subject, html, text };
 }
+
+function adminUrl(): string {
+  return process.env.ADMIN_URL ?? 'https://admin.uk2meonline.com';
+}
+
+// --- M2 R3: admin order-placed alert (with product links for self-review) ---
+export function adminOrderPlacedEmail(orderId: string, region: string, productLinks: string[]) {
+  const url = `${adminUrl()}/orders/${orderId}`;
+  const subject = `New order ${orderId} (${region}) — review & price`;
+  const links = productLinks.length
+    ? `<ul style="padding-left:20px;margin:8px 0 16px;color:#4b5563;">${productLinks.map((l) => `<li><a href="${l}">${l}</a></li>`).join('')}</ul>`
+    : '<p style="margin:0 0 16px;color:#64748b;">No product links on this order.</p>';
+  const html = layout('New order to review', `
+    <p style="margin:0 0 12px;">A new <strong>${region}</strong> order has been placed and is awaiting review/pricing.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:16px 0;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;border-collapse:collapse;">
+      ${orderRow('Order ID', orderId)}
+      ${orderRow('Region', region)}
+    </table>
+    <p style="margin:0 0 6px;font-weight:600;">Product link(s):</p>
+    ${links}
+    ${cta('Open in admin', url)}
+  `);
+  const text = `New order ${orderId} (${region}).\nProduct links:\n${productLinks.join('\n')}\n\nAdmin: ${url}`;
+  return { subject, html, text };
+}
+
+// --- M2 R4: invoice ready for the customer ---
+export function invoiceReadyEmail(name: string, orderId: string, total: number, currency: string) {
+  const url = `${clientUrl()}/orders/${orderId}`;
+  const displayTotal = `${currency} ${total.toFixed(2)}`;
+  const subject = `Your invoice is ready — Order ${orderId}`;
+  const html = layout('Your invoice is ready', `
+    <p style="margin:0 0 16px;">Hi ${name || 'there'}, your order has been priced and your invoice is ready. Review the full breakdown and pay to start processing.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:20px 0;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;border-collapse:collapse;">
+      ${orderRow('Order ID', orderId)}
+      ${orderRow('Total due', displayTotal)}
+    </table>
+    ${cta('View & pay invoice', url)}
+  `);
+  const text = `Your invoice for order ${orderId} is ready.\nTotal due: ${displayTotal}\n\nView & pay: ${url}`;
+  return { subject, html, text };
+}
+
+// --- M3 R9: manual weight pricing ---
+export function weightPriceRequestedAdminEmail(orderId: string, items: { productUrl: string; category?: string }[]) {
+  const url = `${adminUrl()}/weight-price-requests`;
+  const subject = `Weight price requested — Order ${orderId}`;
+  const list = `<ul style="padding-left:20px;margin:8px 0 16px;color:#4b5563;">${items
+    .map((i) => `<li><a href="${i.productUrl}">${i.productUrl}</a>${i.category ? ` <em>(${i.category})</em>` : ''}</li>`)
+    .join('')}</ul>`;
+  const html = layout('Weight price requested', `
+    <p style="margin:0 0 12px;">A customer needs a manual weight/delivery price for items in order <strong>${orderId}</strong> (no weight class on file). Please resolve so they can pay.</p>
+    ${list}
+    ${cta('Resolve weight prices', url)}
+  `);
+  const text = `Weight price requested for order ${orderId}:\n${items.map((i) => i.productUrl).join('\n')}\n\nResolve: ${url}`;
+  return { subject, html, text };
+}
+
+export function weightPriceResolvedEmail(name: string, orderId: string) {
+  const url = `${clientUrl()}/orders/${orderId}`;
+  const subject = `Your item is now priced — Order ${orderId}`;
+  const html = layout('Your item is ready to pay for', `
+    <p style="margin:0 0 16px;">Hi ${name || 'there'}, we've worked out the delivery price for your item(s). Your order is now ready for payment.</p>
+    ${cta('View & pay', url)}
+  `);
+  const text = `Your item in order ${orderId} is now priced and ready to pay.\n\nView: ${url}`;
+  return { subject, html, text };
+}
+
+// --- M3 R10: complaints ---
+export function complaintOpenedEmail(name: string, orderId: string) {
+  const url = `${clientUrl()}/orders/${orderId}`;
+  const subject = `We've received your complaint — Order ${orderId}`;
+  const html = layout('Complaint received', `
+    <p style="margin:0 0 16px;">Hi ${name || 'there'}, we've received your complaint about order ${orderId} and our team will review it shortly. We'll email you with any updates.</p>
+    ${cta('View my order', url)}
+  `);
+  const text = `We've received your complaint about order ${orderId}. We'll be in touch.\n\nView: ${url}`;
+  return { subject, html, text };
+}
+
+export function complaintOpenedAdminEmail(orderId: string, reason: string) {
+  const url = `${adminUrl()}/complaints`;
+  const subject = `New complaint — Order ${orderId}`;
+  const html = layout('New complaint raised', `
+    <p style="margin:0 0 12px;">A customer raised a complaint on order <strong>${orderId}</strong>.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:16px 0;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;border-collapse:collapse;">
+      ${orderRow('Order ID', orderId)}
+      ${orderRow('Reason', reason)}
+    </table>
+    ${cta('Review complaints', url)}
+  `);
+  const text = `New complaint on order ${orderId}. Reason: ${reason}\n\nReview: ${url}`;
+  return { subject, html, text };
+}
+
+export function complaintStatusEmail(name: string, orderId: string, status: string, note?: string) {
+  const url = `${clientUrl()}/orders/${orderId}`;
+  const subject = `Update on your complaint — Order ${orderId}`;
+  const html = layout('Complaint update', `
+    <p style="margin:0 0 12px;">Hi ${name || 'there'}, there's an update on your complaint for order ${orderId}.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:16px 0;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;border-collapse:collapse;">
+      ${orderRow('Status', status)}
+      ${note ? orderRow('Note', note) : ''}
+    </table>
+    ${cta('View my order', url)}
+  `);
+  const text = `Complaint update for order ${orderId}: ${status}${note ? `\nNote: ${note}` : ''}\n\nView: ${url}`;
+  return { subject, html, text };
+}
+
+// --- M3 R13: wallet credited (e.g. out of stock) ---
+export function walletCreditedEmail(name: string, amount: number, currency: string, reason: string) {
+  const url = `${clientUrl()}/wallet`;
+  const display = `${currency} ${amount.toFixed(2)}`;
+  const subject = `${display} credited to your UK2ME wallet`;
+  const html = layout('Wallet credited', `
+    <p style="margin:0 0 16px;">Hi ${name || 'there'}, we've added <strong>${display}</strong> to your UK2ME wallet${reason ? ` (${reason})` : ''}. You can spend this credit on your next order.</p>
+    ${cta('View my wallet', url)}
+  `);
+  const text = `${display} has been credited to your UK2ME wallet${reason ? ` (${reason})` : ''}.\n\nView: ${url}`;
+  return { subject, html, text };
+}

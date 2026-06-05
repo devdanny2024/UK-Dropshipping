@@ -19,7 +19,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     where: { id: params.id },
     data: {
       enabled: data.enabled,
-      notes: data.notes
+      notes: data.notes,
+      storeToWarehouseFee: data.storeToWarehouseFee,
+      storeFeeCurrency: data.storeFeeCurrency
     }
   });
 
