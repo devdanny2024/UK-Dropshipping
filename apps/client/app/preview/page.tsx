@@ -12,7 +12,7 @@ import { Input } from '@/app/components/ui/input';
 import { useCart } from '@/app/components/cart/use-cart';
 import { useCurrency, US_TAX_RATE } from '@/app/hooks/use-currency';
 
-const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'UK4', 'UK5', 'UK6', 'UK7', 'UK8', 'UK9', 'UK10', 'UK11', 'UK12', 'One Size'];
+const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'UK4', 'UK5', 'UK6', 'UK7', 'UK8', 'UK9', 'UK10', 'UK11', 'UK12', 'One Size', 'Other'];
 const COMMON_COLORS = ['Black', 'White', 'Navy', 'Grey', 'Red', 'Blue', 'Green', 'Pink', 'Brown', 'Beige', 'Other'];
 const COMMON_CATEGORIES = ['Clothing', 'Shoes', 'Accessories', 'Electronics', 'Home & Garden', 'Beauty', 'Sports', 'Toys', 'Books', 'Other'];
 
@@ -21,6 +21,8 @@ function PreviewContent() {
   const params = useSearchParams();
   const [size, setSize] = useState('M');
   const [color, setColor] = useState('Black');
+  const [customSize, setCustomSize] = useState('');
+  const [customColor, setCustomColor] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [productUrl, setProductUrl] = useState(() => params.get('url') ?? '');
   const [isLoading, setIsLoading] = useState(false);
@@ -299,6 +301,14 @@ function PreviewContent() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {size === 'Other' && (
+                    <Input
+                      className="mt-2"
+                      value={customSize}
+                      onChange={(e) => setCustomSize(e.target.value)}
+                      placeholder="Type the exact size"
+                    />
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="m-color">Color</Label>
@@ -312,6 +322,14 @@ function PreviewContent() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {color === 'Other' && (
+                    <Input
+                      className="mt-2"
+                      value={customColor}
+                      onChange={(e) => setCustomColor(e.target.value)}
+                      placeholder="Type the colour"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -483,6 +501,14 @@ function PreviewContent() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {size === 'Other' && (
+                        <Input
+                          className="mt-2"
+                          value={customSize}
+                          onChange={(e) => setCustomSize(e.target.value)}
+                          placeholder="Type the exact size"
+                        />
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="color">Color</Label>
@@ -496,6 +522,14 @@ function PreviewContent() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {color === 'Other' && (
+                        <Input
+                          className="mt-2"
+                          value={customColor}
+                          onChange={(e) => setCustomColor(e.target.value)}
+                          placeholder="Type the colour"
+                        />
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="quantity">Quantity</Label>
@@ -521,6 +555,8 @@ function PreviewContent() {
                     disabled={isLoading || !product.priceWithTax || !resolved?.snapshotId}
                     onClick={() => {
                       const taxInclusivePrice = product.priceWithTax ?? product.price ?? 0;
+                      const finalSize = size === 'Other' ? (customSize.trim() || 'Other') : size;
+                      const finalColor = color === 'Other' ? (customColor.trim() || 'Other') : color;
                       addItem({
                         name: product.name,
                         slug: undefined,
@@ -530,8 +566,8 @@ function PreviewContent() {
                         externalUrl: product.url,
                         productCode: undefined,
                         categoryName: manualCategory || store,
-                        size,
-                        color
+                        size: finalSize,
+                        color: finalColor
                       });
                     }}
                   >
