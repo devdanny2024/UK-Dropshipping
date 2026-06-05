@@ -123,6 +123,18 @@ function PreviewContent() {
     }
   };
 
+  // Let the customer correct auto-fetched details that are wrong (name, price,
+  // image) by reopening the manual form pre-filled with what we resolved.
+  const startEditDetails = () => {
+    setManualTitle(resolved?.title ?? '');
+    setManualPrice(resolved?.price != null ? String(resolved.price) : manualPrice);
+    setManualImageUrl(resolved?.imageUrl ?? '');
+    setManualProductLink(resolved?.url ?? params.get('url') ?? '');
+    setManualError(null);
+    setResolved(null);
+    setShowManualForm(true);
+  };
+
   useEffect(() => {
     const url = params.get('url');
     if (!url) return;
@@ -443,6 +455,18 @@ function PreviewContent() {
                     </div>
                   ) : null}
                 </div>
+
+                {/* Correct wrong auto-fetched details */}
+                {resolved && (
+                  <button
+                    type="button"
+                    onClick={startEditDetails}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline underline-offset-2"
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                    Details wrong? Edit name, price or image
+                  </button>
+                )}
 
                 {/* Size / color / quantity selectors */}
                 {resolved && (
