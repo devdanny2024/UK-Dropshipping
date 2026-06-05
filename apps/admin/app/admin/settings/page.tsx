@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DollarSign, Truck, Bell, Settings as SettingsIcon, RefreshCw, X, Scale } from 'lucide-react';
+import { DollarSign, Truck, Bell, Settings as SettingsIcon, RefreshCw, X, Scale, Clock } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
@@ -9,6 +10,30 @@ import { Label } from '@/app/components/ui/label';
 import { Separator } from '@/app/components/ui/separator';
 import { Switch } from '@/app/components/ui/switch';
 import { Badge } from '@/app/components/ui/badge';
+
+type SettingField = { key: string; label: string; hint?: string };
+
+const DELIVERY_FIELDS: SettingField[] = [
+  { key: 'delivery_processing_days', label: 'Processing days' },
+  { key: 'delivery_leg1_std_min', label: 'Leg 1 standard min (days)' },
+  { key: 'delivery_leg1_std_max', label: 'Leg 1 standard max (days)' },
+  { key: 'delivery_leg1_express_min', label: 'Leg 1 express min (days)' },
+  { key: 'delivery_leg1_express_max', label: 'Leg 1 express max (days)' },
+  { key: 'delivery_despatch_weekday', label: 'Despatch weekday', hint: '0=Sun … 4=Thu … 6=Sat' },
+  { key: 'delivery_despatch_cutoff_days', label: 'Despatch cutoff (days)' },
+  { key: 'delivery_leg2_std_min', label: 'Leg 2 standard min (days)' },
+  { key: 'delivery_leg2_std_max', label: 'Leg 2 standard max (days)' },
+  { key: 'delivery_leg2_express_min', label: 'Leg 2 express min (days)' },
+  { key: 'delivery_leg2_express_max', label: 'Leg 2 express max (days)' },
+  { key: 'delivery_express_regions', label: 'Express regions (CSV)', hint: 'e.g. UK' }
+];
+
+const PRICING_FIELDS: SettingField[] = [
+  { key: 'service_charge_us_min', label: 'US service charge min' },
+  { key: 'service_charge_us_threshold', label: 'US service charge threshold' },
+  { key: 'international_transfer_fee', label: 'International transfer fee' },
+  { key: 'domestic_postage', label: 'Domestic postage' }
+];
 
 type FxData = {
   overrides: Record<string, number>;
@@ -40,12 +65,50 @@ export default function AdminSettingsPage() {
   const [shippingRateSaving, setShippingRateSaving] = useState(false);
   const [shippingRateMsg, setShippingRateMsg] = useState<string | null>(null);
 
+  const [settingValues, setSettingValues] = useState<Record<string, string>>({});
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [settingSaving, setSettingSaving] = useState<string | null>(null);
+
   useEffect(() => {
     loadFx();
     loadFee();
     loadDeliveryFees();
     loadShippingRate();
+    loadSettings();
   }, []);
+
+  async function loadSettings() {
+    setSettingsLoading(true);
+    try {
+      const res = await fetch('/api/proxy/v1/admin/settings', { credentials: 'include' });
+      const payload = await res.json();
+      const list = payload?.data?.settings ?? payload?.settings;
+      if (Array.isArray(list)) {
+        const map: Record<string, string> = {};
+        for (const s of list) {
+          if (s && s.key != null) map[String(s.key)] = s.value == null ? '' : String(s.value);
+        }
+        setSettingValues(map);
+      }
+    } catch { /* noop */ }
+    finally { setSettingsLoading(false); }
+  }
+
+  async function saveSetting(key: string) {
+    setSettingSaving(key);
+    try {
+      const res = await fetch('/api/proxy/v1/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ key, value: settingValues[key] ?? '' })
+      });
+      const payload = await res.json();
+      if (res.ok && payload?.ok !== false) toast.success(`Saved ${key}`);
+      else toast.error(payload?.error?.message ?? `Could not save ${key}`);
+    } catch { toast.error(`Failed to save ${key}`); }
+    finally { setSettingSaving(null); }
+  }
 
   async function loadFx() {
     setFxLoading(true);
@@ -175,6 +238,88 @@ export default function AdminSettingsPage() {
         <h1 className="text-3xl font-semibold text-foreground">Settings</h1>
         <p className="text-muted-foreground mt-2">Configure pricing rules, notifications, and logistics defaults</p>
       </div>
+
+      {/* Delivery timings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Delivery Timings
+          </CardTitle>
+          <CardDescription>
+            Drives the delivery estimate shown to customers. Each field saves independently.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {settingsLoading ? (
+            <p className="text-sm text-muted-foreground py-4">Loading settings...</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {DELIVERY_FIELDS.map((f) => (
+                <div key={f.key} className="space-y-2">
+                  <Label htmlFor={`set-${f.key}`}>{f.label}</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id={`set-${f.key}`}
+                      value={settingValues[f.key] ?? ''}
+                      onChange={(e) => setSettingValues((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => saveSetting(f.key)}
+                      disabled={settingSaving === f.key}
+                    >
+                      {settingSaving === f.key ? '...' : 'Save'}
+                    </Button>
+                  </div>
+                  {f.hint && <p className="text-xs text-muted-foreground">{f.hint}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Pricing settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5" />
+            Pricing Rules
+          </CardTitle>
+          <CardDescription>
+            Service charge, transfer, and postage defaults applied during invoicing. Each field saves independently.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {settingsLoading ? (
+            <p className="text-sm text-muted-foreground py-4">Loading settings...</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {PRICING_FIELDS.map((f) => (
+                <div key={f.key} className="space-y-2">
+                  <Label htmlFor={`set-${f.key}`}>{f.label}</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id={`set-${f.key}`}
+                      value={settingValues[f.key] ?? ''}
+                      onChange={(e) => setSettingValues((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => saveSetting(f.key)}
+                      disabled={settingSaving === f.key}
+                    >
+                      {settingSaving === f.key ? '...' : 'Save'}
+                    </Button>
+                  </div>
+                  {f.hint && <p className="text-xs text-muted-foreground">{f.hint}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Shipping Weight Rate */}
       <Card>

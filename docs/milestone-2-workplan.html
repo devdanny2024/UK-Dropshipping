@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>UK2ME — Milestone 2 Work Plan</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #1f2937; font-size: 11.5px; line-height: 1.55; margin: 0; }
+  h1 { font-size: 23px; margin: 0 0 2px; color: #4C1D95; }
+  h2 { font-size: 15px; margin: 22px 0 8px; color: #5B21B6; border-bottom: 2px solid #EDE9FE; padding-bottom: 4px; }
+  h3 { font-size: 12.5px; margin: 14px 0 4px; color: #6D28D9; }
+  .sub { font-size: 13px; color: #7C3AED; font-weight: 600; margin: 0 0 14px; }
+  .hero { background: linear-gradient(135deg,#7C3AED 0%,#5B21B6 60%,#4C1D95 100%); color:#fff; border-radius: 14px; padding: 22px 24px; margin-bottom: 18px; }
+  .hero h1 { color:#fff; }
+  .hero .sub { color:#F59E0B; letter-spacing:3px; text-transform:uppercase; font-size:10px; }
+  .hero .meta { color:#E9D5FF; font-size:11px; margin-top:8px; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 6px; }
+  th, td { border: 1px solid #E5E7EB; padding: 6px 9px; text-align: left; vertical-align: top; }
+  th { background: #F5F3FF; color: #5B21B6; font-size: 10.5px; text-transform: uppercase; letter-spacing: .4px; }
+  td.c, th.c { text-align: center; }
+  code, pre { font-family: "Consolas", monospace; }
+  pre { background: #F8F7FF; border: 1px solid #EDE9FE; border-left: 3px solid #7C3AED; border-radius: 6px; padding: 10px 12px; font-size: 10.5px; overflow-x:auto; white-space: pre-wrap; }
+  code { background: #F3F0FF; padding: 1px 4px; border-radius: 3px; font-size: 10.5px; color:#5B21B6; }
+  pre code { background: none; padding: 0; color: inherit; }
+  .ws { background:#FBFAFF; border:1px solid #EDE9FE; border-radius:8px; padding:10px 14px; margin:10px 0; }
+  .ws h3 { margin-top:0; }
+  .ws .est { float:right; font-size:10px; color:#7C3AED; background:#F3F0FF; padding:2px 8px; border-radius:10px; }
+  ol, ul { margin: 4px 0 4px; padding-left: 18px; }
+  li { margin: 3px 0; }
+  em { color:#6B7280; font-style: italic; }
+  .check li { list-style: none; margin-left:-10px; }
+  .check li::before { content:"☐ "; color:#7C3AED; font-weight:700; }
+  .tag { display:inline-block; background:#7C3AED; color:#fff; font-size:9px; padding:1px 6px; border-radius:8px; vertical-align:middle; }
+  .footer { margin-top:24px; padding-top:10px; border-top:1px solid #EDE9FE; color:#9181C2; font-size:10px; }
+  .nobreak { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="sub">📦 UK2ME Online</div>
+  <h1>Milestone 2 — Work Plan</h1>
+  <div style="font-size:14px;font-weight:600;color:#F5F3FF;">Location-based baskets, admin invoicing &amp; end-to-end email notifications</div>
+  <div class="meta">Project: UK2ME Revamp (monorepo — apps/client · apps/admin · apps/backend) &nbsp;·&nbsp; Prepared: 29 May 2026 · Revised: 2 June 2026 &nbsp;·&nbsp; Status: Planning → ready to build</div>
+</div>
+
+<div style="background:#FFF7ED;border:1px solid #FED7AA;border-left:3px solid #F59E0B;border-radius:8px;padding:10px 14px;margin:0 0 16px;font-size:11px;color:#92400E;">
+  <strong>Revision (2 Jun 2026):</strong> Adds three deliverables from the latest client notes — a configurable
+  <strong>Delivery Engine</strong> (Thursday despatch + multi-leg date estimates), an <strong>Order Dispute &amp; Refund</strong>
+  flow with email notifications, and a <strong>Delivery Note shown before payment</strong>. These are <strong>R6–R8</strong> (§§4.5–4.7, WS-7–WS-9).
+</div>
+
+<h2>1. Purpose</h2>
+<p>The live UK2ME flow is a manual personal-shopping service: a customer pastes UK/US product links, places an order, and staff then build a priced invoice <strong>by hand in Excel</strong> — grouping items by store, adding store postage, transfer fees, service charge, and weight-based Nigeria postage. Two problems were confirmed on the walkthrough call:</p>
+<ol>
+  <li><strong>Invoicing is fully manual</strong> and lives outside the system.</li>
+  <li><strong>Email notifications are unreliable / not arriving</strong>, so staff fall back to Excel and phone calls.</li>
+</ol>
+<p>This milestone closes those gaps with five concrete deliverables.</p>
+
+<h2>2. Requirements (this milestone)</h2>
+<table>
+  <tr><th class="c">#</th><th>Requirement</th><th>Source</th></tr>
+  <tr><td class="c"><strong>R1</strong></td><td><strong>Location-based baskets</strong> — separate UK (£) and US ($) carts. A customer cannot mix regions in one basket because pricing rules differ.</td><td>Call + message</td></tr>
+  <tr><td class="c"><strong>R2</strong></td><td><strong>US has a minimum service charge; UK does not.</strong> Service-charge rule is region-specific (e.g. US flat charge when order value is below a threshold).</td><td>Message</td></tr>
+  <tr><td class="c"><strong>R3</strong></td><td><strong>Order-placed notification to admin, including the product link</strong>, so staff can review the order themselves before pricing.</td><td>Message</td></tr>
+  <tr><td class="c"><strong>R4</strong></td><td><strong>Admin creates an invoice from the order and sends it to the client.</strong> The order stays <strong>pending</strong> until the client pays.</td><td>Message</td></tr>
+  <tr><td class="c"><strong>R5</strong></td><td><strong>Every state change sends an email</strong> — to customer and, where relevant, admin. Fix the underlying non-delivery problem.</td><td>Call + message</td></tr>
+  <tr><td class="c"><strong>R6</strong></td><td><strong>Delivery Engine</strong> — estimated despatch + delivery dates from configurable rules: in-country leg (store→hub), a <strong>weekly Thursday despatch</strong> from UK &amp; US hubs, and the international leg (hub→Lagos). <strong>Two independent speeds</strong> (Leg-1 &amp; Leg-2), <strong>Express UK-only</strong>.</td><td>2 Jun notes</td></tr>
+  <tr><td class="c"><strong>R7</strong></td><td><strong>Order Dispute &amp; Refund</strong> — client button to raise a dispute / request a refund; admin reviews and resolves; <strong>email notifications</strong> at every step. Refund money moved <strong>manually</strong> in the gateway; the app records the state.</td><td>2 Jun notes</td></tr>
+  <tr><td class="c"><strong>R8</strong></td><td><strong>Delivery Note before payment</strong> — the engine's estimate (legs, speeds, despatch day, delivery window) shown to the customer <strong>before they pay</strong>, <strong>persisted on the order</strong> and <strong>visible in admin</strong>.</td><td>2 Jun notes</td></tr>
+</table>
+
+<h2>3. Current state vs. gap</h2>
+<table>
+  <tr><th>Area</th><th>Already built</th><th>Gap to close</th></tr>
+  <tr><td>Checkout</td><td>Single <strong>GBP-only</strong> checkout (<code>/api/v1/checkout</code>)</td><td>Region-aware UK/US baskets &amp; orders (R1)</td></tr>
+  <tr><td>Pricing</td><td>Weight engine, FX overrides, tax %, delivery/logistic fees in <code>AppSetting</code></td><td>Region service-charge rule + per-store-group invoice math (R2)</td></tr>
+  <tr><td>Orders</td><td><code>Order</code> + statuses PLACED…DELIVERED; admin list exposes <code>productUrl</code></td><td>New statuses for invoice/payment lifecycle (R4)</td></tr>
+  <tr><td>Notifications</td><td>Customer emails (order received / status / shipped); mailer <strong>swallows errors</strong></td><td>Admin order-placed email; invoice email; reliable delivery + logging (R3, R5)</td></tr>
+  <tr><td>Invoicing</td><td>Client Invoices page is a <strong>placeholder</strong>; no <code>Invoice</code> model; no admin builder</td><td>Full invoice model, admin builder UI, client view, PDF/email (R4)</td></tr>
+  <tr><td>Delivery timing</td><td>Checkout has only <code>door</code>/<code>pickup</code> flat fees — <strong>no date estimation at all</strong></td><td>Configurable multi-leg engine: Thursday despatch + delivery window (R6, R8)</td></tr>
+  <tr><td>Disputes/refunds</td><td><strong>No dispute or refund concept</strong> in model or UI</td><td><code>Dispute</code> model, client raise-button, admin resolve, refund states + emails (R7)</td></tr>
+</table>
+
+<h2>4. Data model changes <span style="font-weight:400;font-size:11px;color:#6B7280;">(prisma/schema.prisma)</span></h2>
+<p><strong>4.1 Order status enum</strong> — extend lifecycle so an order can sit "pending" after invoicing:</p>
+<pre><code>PLACED              // customer submitted, awaiting admin review
+PENDING_INVOICE     // admin reviewing / building invoice
+INVOICED            // invoice sent, awaiting client payment  ← "pending"
+PROCESSING          // payment confirmed, sourcing item
+AWAITING_PURCHASE → SHIPPED → DELIVERED → CANCELLED   (unchanged)</code></pre>
+<p><strong>4.2 Add <code>region</code> to <code>Order</code></strong> — <code>UK</code> | <code>US</code> (drives currency, service-charge rule, basket).</p>
+<p><strong>4.3 New <code>Invoice</code> + <code>InvoiceLineItem</code> models:</strong></p>
+<pre><code>Invoice
+  id, orderId (1:1), invoiceNumber, region (UK|US), currency
+  status: DRAFT | SENT | PAID | VOID
+  itemsSubtotal, storePostage, salesTax,
+  internationalTransferFee, serviceCharge,
+  nigeriaPostage, domesticPostage, total
+  fxRateSnapshot, notes
+  sentAt, dueAt, paidAt, createdAt, updatedAt
+  lineItems  InvoiceLineItem[]
+
+InvoiceLineItem
+  id, invoiceId, storeName (group key), productTitle, productUrl,
+  size, color, qty, unitPrice, lineTotal, weightGrams</code></pre>
+<p>Line items are <strong>grouped by store</strong> (all Amazon together, all Aldo together) to mirror how staff already build invoices.</p>
+<p><strong>4.4 Service-charge settings</strong> (in <code>AppSetting</code>, region-keyed): <code>service_charge_us_min</code>, <code>service_charge_us_threshold</code>, <code>service_charge_uk_*</code> (UK = 0 by default).</p>
+
+<p><strong>4.5 Delivery Engine — config + persisted estimate (R6, R8).</strong> All timings live in <code>AppSetting</code> (admin-editable, no redeploy), with <code>lib/settings.ts</code> getters:</p>
+<pre><code>delivery_processing_days        // order placed → ready for Leg 1   (default 1, working days)
+delivery_leg1_std_min/max       // store → hub, standard            (default 3 / 5 days)
+delivery_leg1_express_min/max   // store → hub, express (UK only)   (default 1 / 2 days)
+delivery_despatch_weekday       // weekly despatch day              (default 4 = Thursday)
+delivery_despatch_cutoff_days   // must be at hub N days before      (default 1 → by Wednesday)
+delivery_leg2_std_min/max       // hub → Lagos, standard            (default 5 / 10 WORKING days)
+delivery_leg2_express_min/max   // hub → Lagos, express (UK only)   (default 2 / 3 working days)
+delivery_express_regions        // regions allowing express         (default "UK")</code></pre>
+<p>Persisted on <code>Order</code> (snapshot at quote-time so estimates don't drift):</p>
+<pre><code>Order  + leg1Speed (STD|EXPRESS)  + leg2Speed (STD|EXPRESS)
+       + despatchDate  + estDeliveryMin  + estDeliveryMax  + deliveryQuotedAt
+       + deliveryNote  Json   // full leg-by-leg breakdown for the Delivery Note &amp; admin</code></pre>
+<p><strong>Engine</strong> (<code>lib/delivery-engine.ts</code>, pure + unit-testable; types mirrored into <code>packages/shared</code>):</p>
+<pre><code>estimateDelivery({ placedAt, region, leg1Speed, leg2Speed }) → {
+  readyAt      = addWorkingDays(placedAt, processingDays)
+  hubArriveMin = addDays(readyAt, leg1Min);  hubArriveMax = addDays(readyAt, leg1Max)
+  despatchDate = nextDespatchDay(hubArriveMax + cutoff, weekday)   // roll to the Thursday
+  deliveryMin  = addWorkingDays(despatchDate, leg2Min)
+  deliveryMax  = addWorkingDays(despatchDate, leg2Max)
+  → { despatchDate, deliveryMin, deliveryMax, legs[…], speedLabels, expressAvailable }
+}</code></pre>
+<p>Express is honoured only when <code>region ∈ delivery_express_regions</code> (UK); otherwise it falls back to standard with a notice. A shared <code>addWorkingDays()</code> helper skips weekends (NG/UK public-holiday calendars can be layered on later).</p>
+
+<p><strong>4.6 Dispute &amp; Refund (R7)</strong> — new enum + model, and lifecycle additions:</p>
+<pre><code>enum DisputeStatus { OPEN  UNDER_REVIEW  RESOLVED  REJECTED }
+OrderStatus   += DISPUTED, REFUNDED
+PaymentStatus += REFUNDED
+
+model Dispute
+  id, orderId, userId, reason, detail
+  requestedRefund Boolean, refundAmount Float?
+  status DisputeStatus @default(OPEN)
+  resolutionNote, refundedAt, refundedBy
+  createdAt, updatedAt, resolvedAt</code></pre>
+<p>Refund execution is <strong>manual</strong> (admin moves money in the Paystack/Stripe dashboard); the app records <code>Payment.status=REFUNDED</code>, <code>Order.status=REFUNDED</code>, and an <code>OrderEvent</code> for audit.</p>
+
+<p><strong>4.7 Delivery Note (R8)</strong> — <em>not a new model</em>; it is the rendered view of the §4.5 estimate stored on the <code>Order</code> (<code>deliveryNote</code> JSON + the est. fields), shown as a block on the pre-payment / invoice screen and on the admin order detail.</p>
+
+<h2>5. Workstreams</h2>
+<p><em>Each task lists a <strong>verify</strong> check so progress is testable, not "looks done".</em></p>
+
+<div class="ws nobreak">
+  <span class="est">~2 days</span>
+  <h3>WS-1 — Region-aware baskets <span class="tag">R1</span></h3>
+  <ol>
+    <li>Add <code>region</code> to client cart store (Zustand) → one active region per basket; switching region warns/empties. <br><em>verify: cannot add a US link to a UK basket; UI reflects £ vs $.</em></li>
+    <li><code>region</code> carried through <code>/api/v1/checkout</code>; order persisted with region + correct currency (remove hardcoded <code>'GBP'</code>). <br><em>verify: a US order is stored with region=US, currency=USD.</em></li>
+    <li>Client checkout + dashboard show the right currency/flag per order. <br><em>verify: order list shows £ and $ correctly.</em></li>
+  </ol>
+</div>
+
+<div class="ws nobreak">
+  <span class="est">~3 days</span>
+  <h3>WS-2 — Invoice data model &amp; engine <span class="tag">R2</span> <span class="tag">R4</span></h3>
+  <ol>
+    <li>Migrations for §4 (Order status, region, Invoice models, settings). <br><em>verify: prisma migrate clean; prisma generate types compile.</em></li>
+    <li>Invoice-calc service: group items by store; apply store postage, <strong>US sales tax</strong>, international transfer fee, <strong>region service charge (US min / UK none)</strong>, weight-based Nigeria postage (reuse <code>lib/weight.ts</code>), optional Lagos→outside domestic postage. <br><em>verify: unit tests for US-below-threshold (charge applied) vs UK (none), plus a multi-store order totalling correctly.</em></li>
+    <li>Admin endpoints: <code>POST …/orders/[id]/invoice</code> (draft), <code>PATCH …/invoice</code> (edit), <code>POST …/invoice/send</code>. <br><em>verify: creating an invoice flips order to INVOICED; refetch returns saved breakdown.</em></li>
+  </ol>
+</div>
+
+<div class="ws nobreak">
+  <span class="est">~2.5 days</span>
+  <h3>WS-3 — Admin invoice builder UI <span class="tag">R4</span></h3>
+  <ol>
+    <li>On order detail page, "Build invoice" panel: auto-grouped store sections, editable line prices, fee fields pre-filled from settings, live total. <br><em>verify: editing a fee updates total instantly; matches engine output.</em></li>
+    <li>"Send invoice" → sets invoice SENT, order INVOICED (pending), triggers client email. <br><em>verify: client receives invoice email; order shows pending.</em></li>
+  </ol>
+</div>
+
+<div class="ws nobreak">
+  <span class="est">~1.5 days</span>
+  <h3>WS-4 — Client invoice view <span class="tag">R4</span></h3>
+  <ol>
+    <li>Replace placeholder Invoices page with real list + detail (store-grouped breakdown, total, status). <br><em>verify: client sees the sent invoice with full breakdown.</em></li>
+    <li>"Pay now" wires to existing Paystack/Stripe flow using invoice total; on payment, order → PROCESSING, invoice → PAID. <br><em>verify: simulated payment moves both states and emails fire.</em></li>
+  </ol>
+</div>
+
+<div class="ws nobreak">
+  <span class="est">~2 days</span>
+  <h3>WS-5 — Notifications: admin alerts + reliability <span class="tag">R3</span> <span class="tag">R5</span></h3>
+  <ol>
+    <li><strong>Admin order-placed email</strong> on checkout — customer, items, and <strong>product link(s)</strong> for self-review. <br><em>verify: placing an order emails the admin address with clickable product links.</em></li>
+    <li>New templates: admin order alert, invoice ready (client), invoice paid (client + admin); extend status emails to new statuses. <br><em>verify: each state change produces the matching email.</em></li>
+    <li><strong>Mailer reliability:</strong> stop silently swallowing failures — log + retry once, record send status on <code>OrderEvent</code>, surface failures in admin. Document SMTP config (Gmail app-password on file). <br><em>verify: a forced SMTP error is logged and visible; a healthy send is recorded.</em></li>
+    <li>Admin recipient configurable via <code>AppSetting</code> (<code>admin_notify_email</code>). <br><em>verify: changing the setting reroutes alerts.</em></li>
+  </ol>
+</div>
+
+<div class="ws nobreak">
+  <span class="est">~1 day (optional)</span>
+  <h3>WS-6 — Invoice PDF + polish</h3>
+  <ol>
+    <li>Render invoice to PDF (HTML→PDF), attach to invoice email, downloadable by client. <br><em>verify: emailed/downloaded PDF matches on-screen breakdown.</em></li>
+  </ol>
+</div>
+
+<div class="ws nobreak">
+  <span class="est">~3 days</span>
+  <h3>WS-7 — Delivery Engine + Delivery Note <span class="tag">R6</span> <span class="tag">R8</span></h3>
+  <ol>
+    <li><code>lib/delivery-engine.ts</code> pure function + <code>addWorkingDays</code>/<code>nextDespatchDay</code> helpers; seed §4.5 settings with defaults. <br><em>verify: unit tests — an order placed Mon (std/std, UK) despatches the <strong>same-week Thursday</strong>; one placed so Leg-1 misses cutoff rolls to <strong>next Thursday</strong>; Leg-2 window counts <strong>working</strong> days only.</em></li>
+    <li>Settings getters + admin "Delivery timings" panel (processing, leg min/max, despatch weekday, cutoff, express regions). <br><em>verify: changing <code>delivery_leg2_std_max</code> shifts quoted windows without redeploy.</em></li>
+    <li>Migrate <code>Order</code> delivery fields; compute + snapshot the estimate at quote/checkout. <br><em>verify: order row stores <code>despatchDate</code>, <code>estDeliveryMin/Max</code>, <code>deliveryNote</code> JSON.</em></li>
+    <li><strong>Delivery Note</strong> block on the pre-payment / invoice screen (region, two speed pickers with <strong>Express gated to UK</strong>, despatch Thursday, delivery window) and on admin order detail. <br><em>verify: a US order hides express; the on-screen note matches the stored snapshot and admin view.</em></li>
+  </ol>
+</div>
+
+<div class="ws nobreak">
+  <span class="est">~2.5 days</span>
+  <h3>WS-8 — Order Dispute &amp; Refund <span class="tag">R7</span></h3>
+  <ol>
+    <li>Migrate §4.6 (<code>Dispute</code> model, <code>DisputeStatus</code>, <code>OrderStatus += DISPUTED/REFUNDED</code>, <code>PaymentStatus += REFUNDED</code>). <br><em>verify: prisma migrate clean; types compile.</em></li>
+    <li>Client <strong>"Raise a dispute / Request refund"</strong> on order detail (eligible statuses only) → form (reason + detail + optional refund) → creates <code>Dispute(OPEN)</code>, emails customer confirmation + admin alert. <br><em>verify: submitting creates the dispute and both emails fire.</em></li>
+    <li>Admin <strong>Disputes</strong> list + detail → set <code>UNDER_REVIEW</code>, then <strong>Resolve</strong> (optionally approve refund → <code>Payment=REFUNDED</code>, <code>Order=REFUNDED</code>, record <code>refundedAt/By</code>) or <strong>Reject</strong>; each transition emails the customer. <br><em>verify: approving a refund flips both states, writes an <code>OrderEvent</code>, and emails the customer.</em></li>
+  </ol>
+</div>
+
+<div class="ws nobreak">
+  <span class="est">folded in</span>
+  <h3>WS-9 — Delivery/dispute notifications wiring <span class="tag">R5</span> <span class="tag">R7</span></h3>
+  <ol>
+    <li>New templates: <strong>dispute opened</strong> (customer + admin), <strong>dispute status changed / resolved / rejected</strong> (customer), <strong>refund processed</strong> (customer + admin) — sent via the WS-5 reliability path. <br><em>verify: each transition produces the matching email, logged.</em></li>
+  </ol>
+</div>
+
+<h2>6. Email notification matrix <span class="tag">R5</span></h2>
+<table>
+  <tr><th>Event</th><th class="c">Customer</th><th class="c">Admin</th></tr>
+  <tr><td>Account verify / password reset</td><td class="c">✓</td><td class="c">—</td></tr>
+  <tr><td><strong>Order placed</strong></td><td class="c">✓ (received)</td><td class="c">✓ <strong>(with product link)</strong></td></tr>
+  <tr><td><strong>Invoice sent</strong></td><td class="c">✓ (invoice + breakdown)</td><td class="c">—</td></tr>
+  <tr><td><strong>Payment received</strong></td><td class="c">✓</td><td class="c">✓</td></tr>
+  <tr><td>Status: sourcing / shipped / delivered / cancelled</td><td class="c">✓</td><td class="c">—</td></tr>
+  <tr><td><strong>Dispute opened</strong></td><td class="c">✓ (received)</td><td class="c">✓ (alert)</td></tr>
+  <tr><td><strong>Dispute status changed / resolved / rejected</strong></td><td class="c">✓</td><td class="c">—</td></tr>
+  <tr><td><strong>Refund processed</strong></td><td class="c">✓</td><td class="c">✓</td></tr>
+</table>
+
+<h2>7. Sequencing &amp; estimate</h2>
+<pre><code>WS-1 baskets ─┐
+WS-2 model/engine ─┬─► WS-3 admin builder ─► WS-4 client view ─► WS-6 PDF
+WS-5 notifications ─┘  (parallel; touches WS-3/WS-4 hooks)
+
+WS-7 delivery engine ──► Delivery Note on WS-4 pre-pay screen   (independent; can start now)
+WS-8 dispute &amp; refund ─► WS-9 dispute/refund emails (via WS-5 path)</code></pre>
+<p><strong>Indicative effort:</strong> ~11–12 working days for R1–R5 (WS-6 optional) <strong>+ ~5–6 days for R6–R8</strong> (WS-7 ~3, WS-8 ~2.5, WS-9 folded in) → <strong>~17–18 working days total</strong>. WS-7 (delivery engine) is pure logic and can start immediately in parallel; WS-8 shares the WS-2 migration window.</p>
+
+<h2>8. Acceptance criteria (definition of done)</h2>
+<ul class="check">
+  <li>A customer keeps <strong>separate UK and US baskets</strong>; orders persist the correct region &amp; currency.</li>
+  <li>Placing an order emails the <strong>admin with the product link(s)</strong>.</li>
+  <li>Admin can <strong>build an invoice</strong> (store-grouped, region-correct fees, <strong>US min service charge, no UK service charge</strong>) and <strong>send it</strong>; the order shows <strong>pending</strong> until paid.</li>
+  <li>The client sees the invoice with a full breakdown and can pay; payment moves the order to processing.</li>
+  <li><strong>Every</strong> lifecycle event sends the correct email; send successes/failures are <strong>logged and visible</strong> (no silent drops).</li>
+  <li>The <strong>Delivery Engine</strong> quotes a despatch Thursday + delivery window from order date, region, and two speeds; <strong>Express shows only for UK</strong>; admin can edit timings in settings.</li>
+  <li>The <strong>Delivery Note</strong> appears before payment, is stored on the order, and matches the admin view.</li>
+  <li>A client can <strong>raise a dispute / request a refund</strong>; admin can <strong>resolve or reject</strong>; a marked refund sets <code>Order/Payment = REFUNDED</code>; every step emails the right parties.</li>
+</ul>
+
+<h2>9. Open questions <span style="font-weight:400;font-size:11px;color:#6B7280;">(confirm before/early in build)</span></h2>
+<ol>
+  <li><strong>Service-charge numbers</strong> — confirm the US minimum amount and the order-value threshold (call mentioned "$15 when under $150"). UK confirmed = none.</li>
+  <li><strong>International transfer fee &amp; Nigeria postage rate</strong> — confirm current figures (in Excel today; we will seed them into settings).</li>
+  <li><strong>Domestic (Lagos → outside Lagos) postage</strong> — flat fee, per-kg, or per-zone?</li>
+  <li><strong>Admin notification address(es)</strong> — which inbox(es) receive order alerts?</li>
+  <li><strong>Does an invoice ever cover multiple orders</strong>, or strictly one invoice per order? (Plan assumes 1:1.)</li>
+  <li><strong>Processing time &amp; Thursday cutoff</strong> — confirm the default <code>delivery_processing_days</code> (assumed <strong>1</strong>) and the cutoff for making that week's Thursday despatch (assumed <strong>at the hub by Wednesday</strong>). Are Leg-1 (store→hub) days <strong>calendar</strong> or <strong>working</strong> days? (Leg-2 is confirmed <em>working</em> days.)</li>
+  <li><strong>Express scope</strong> — confirmed <strong>UK-only</strong> and <strong>two independent legs</strong>. Confirm US has <strong>no</strong> express on either leg, and whether express is <strong>customer-selectable at checkout</strong> or <strong>admin-set / on request</strong>.</li>
+  <li><strong>Dispute eligibility &amp; refunds</strong> — which order statuses can a customer dispute (e.g. after payment only, up to N days post-delivery)? Are <strong>partial</strong> refunds allowed, or full-only?</li>
+</ol>
+
+<div class="footer">
+  UK2ME Online — Milestone 2 Work Plan · Prepared 29 May 2026 · This document supersedes none of Milestone 1; it builds on the existing UK2ME Revamp monorepo.
+</div>
+
+</body>
+</html>

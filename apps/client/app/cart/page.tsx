@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, ShieldCheck, Truck, Package } from 'lucide-react';
-import { useCart, itemKey } from '@/app/components/cart/use-cart';
-import { useCurrency } from '@/app/hooks/use-currency';
+import { useCart, itemKey, REGION_FLAG, REGION_SYMBOL, REGION_CURRENCY, type Region } from '@/app/components/cart/use-cart';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
@@ -12,16 +11,25 @@ import { Separator } from '@/app/components/ui/separator';
 import Link from 'next/link';
 
 export default function CartPage() {
-  const { items, removeItem, updateQuantity, clear, subtotal } = useCart();
-  const { currency, formatPrice } = useCurrency();
+  const { items, removeItem, updateQuantity, clear, subtotal, region, setRegion } = useCart();
+  const currency = REGION_CURRENCY[region];
+  const symbol = REGION_SYMBOL[region];
+  const formatPrice = (value: number | null | undefined) =>
+    `${symbol}${(value ?? 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/proxy';
   const total = subtotal();
 
+  const switchRegion = (next: Region) => {
+    if (next === region) return;
+    if (items.length > 0 && !window.confirm('Switching region will empty your current basket. Continue?')) return;
+    setRegion(next);
+  };
+
   const startCheckout = () => {
-    const intent = { currency, subtotal: total, items, notes, createdAt: new Date().toISOString() };
+    const intent = { region, currency, subtotal: total, items, notes, createdAt: new Date().toISOString() };
     localStorage.setItem('uk2me-checkout-intent', JSON.stringify(intent));
     router.push('/checkout');
   };
@@ -74,9 +82,28 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-background py-10">
       <div className="container mx-auto px-4 max-w-5xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Your Cart</h1>
-          <p className="text-muted-foreground mt-1">{items.length} item{items.length !== 1 ? 's' : ''} ready for checkout</p>
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Your Cart</h1>
+            <p className="text-muted-foreground mt-1">{items.length} item{items.length !== 1 ? 's' : ''} ready for checkout</p>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-muted-foreground">Shopping region</span>
+            <div className="flex items-center rounded-md border border-border overflow-hidden">
+              {(['UK', 'US'] as Region[]).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => switchRegion(r)}
+                  className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    region === r ? 'bg-primary text-primary-foreground' : 'bg-background text-foreground hover:bg-muted'
+                  }`}
+                >
+                  {REGION_FLAG[r]} {r} ({REGION_SYMBOL[r]})
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1fr_360px] items-start">

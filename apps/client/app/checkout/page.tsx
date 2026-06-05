@@ -9,15 +9,15 @@ import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Separator } from '@/app/components/ui/separator';
 import { Badge } from '@/app/components/ui/badge';
-import { useCart, itemKey } from '@/app/components/cart/use-cart';
-import { useCurrency } from '@/app/hooks/use-currency';
+import { useCart, itemKey, REGION_CURRENCY, REGION_SYMBOL } from '@/app/components/cart/use-cart';
 
 type DeliveryType = 'door' | 'pickup';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, subtotal, clear } = useCart();
-  const { formatPrice } = useCurrency();
+  const { items, subtotal, clear, region } = useCart();
+  const currency = REGION_CURRENCY[region];
+  const symbol = REGION_SYMBOL[region];
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('door');
   const [doorFee, setDoorFee] = useState(15);
   const [pickupFee, setPickupFee] = useState(0);
@@ -74,6 +74,8 @@ export default function CheckoutPage() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
+          region,
+          currency,
           items: items.map((item) => ({
             name: item.name,
             imageUrl: item.imageUrl,
@@ -82,6 +84,7 @@ export default function CheckoutPage() {
             externalUrl: item.externalUrl,
             productCode: item.productCode,
             categoryName: item.categoryName,
+            region: item.region ?? region,
             size: item.size,
             color: item.color,
           })),
@@ -168,7 +171,7 @@ export default function CheckoutPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">Delivered to your address</p>
                     <p className="text-sm font-bold mt-2" style={{ color: 'var(--brand-violet)' }}>
-                      {doorFee === 0 ? 'Free' : `+${formatPrice(doorFee)}`}
+                      {doorFee === 0 ? 'Free' : `+${symbol}${doorFee.toFixed(2)}`}
                     </p>
                   </button>
 
@@ -188,7 +191,7 @@ export default function CheckoutPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">Collect from our pickup point</p>
                     <p className="text-sm font-bold mt-2" style={{ color: 'var(--brand-violet)' }}>
-                      {pickupFee === 0 ? 'Free' : `+${formatPrice(pickupFee)}`}
+                      {pickupFee === 0 ? 'Free' : `+${symbol}${pickupFee.toFixed(2)}`}
                     </p>
                   </button>
                 </CardContent>
@@ -285,7 +288,7 @@ export default function CheckoutPage() {
                               {item.color ? ` · ${item.color}` : ''}
                             </p>
                           </div>
-                          <span className="text-xs font-semibold shrink-0">{formatPrice((item.priceGBP ?? 0) * item.quantity)}</span>
+                          <span className="text-xs font-semibold shrink-0">{symbol}{((item.priceGBP ?? 0) * item.quantity).toFixed(2)}</span>
                         </div>
                       );
                     })}
@@ -294,17 +297,17 @@ export default function CheckoutPage() {
                   <div className="space-y-1.5 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Subtotal</span>
-                      <span>{formatPrice(cartTotal)}</span>
+                      <span>{symbol}{cartTotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Delivery</span>
-                      <span>{deliveryFee === 0 ? 'Free' : formatPrice(deliveryFee)}</span>
+                      <span>{deliveryFee === 0 ? 'Free' : `${symbol}${deliveryFee.toFixed(2)}`}</span>
                     </div>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-bold text-base">
                     <span>Total</span>
-                    <span style={{ color: 'var(--brand-violet)' }}>{formatPrice(grandTotal)}</span>
+                    <span style={{ color: 'var(--brand-violet)' }}>{symbol}{grandTotal.toFixed(2)}</span>
                   </div>
 
                   {error && (

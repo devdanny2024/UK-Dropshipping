@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>UK2ME — What's Coming Next</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #1f2937; font-size: 12px; line-height: 1.6; margin: 0; }
+  h1 { font-size: 24px; margin: 0 0 2px; color: #4C1D95; }
+  h2 { font-size: 16px; margin: 24px 0 8px; color: #5B21B6; border-bottom: 2px solid #EDE9FE; padding-bottom: 5px; }
+  h3 { font-size: 13px; margin: 14px 0 4px; color: #6D28D9; }
+  p { margin: 6px 0; }
+  .hero { background: linear-gradient(135deg,#7C3AED 0%,#5B21B6 60%,#4C1D95 100%); color:#fff; border-radius: 14px; padding: 24px 26px; margin-bottom: 18px; }
+  .hero h1 { color:#fff; }
+  .hero .sub { color:#F59E0B; letter-spacing:3px; text-transform:uppercase; font-size:10px; font-weight:700; }
+  .hero .tagline { font-size:14px; font-weight:600; color:#F5F3FF; margin-top:4px; }
+  .hero .meta { color:#E9D5FF; font-size:11px; margin-top:10px; }
+  .lead { background:#F5F3FF; border-left:4px solid #7C3AED; border-radius:8px; padding:12px 16px; font-size:12.5px; margin:0 0 8px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+  th, td { border: 1px solid #E5E7EB; padding: 8px 11px; text-align: left; vertical-align: top; }
+  th { background: #F5F3FF; color: #5B21B6; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+  .card { background:#FBFAFF; border:1px solid #EDE9FE; border-radius:10px; padding:14px 18px; margin:12px 0; page-break-inside: avoid; }
+  .card h3 { margin-top:0; }
+  .feat { display:flex; gap:12px; align-items:flex-start; background:#FBFAFF; border:1px solid #EDE9FE; border-radius:10px; padding:12px 16px; margin:10px 0; page-break-inside: avoid; }
+  .feat .ic { font-size:20px; line-height:1; }
+  .feat .t { font-weight:700; color:#5B21B6; }
+  ol, ul { margin: 6px 0; padding-left: 20px; }
+  li { margin: 4px 0; }
+  .steps { counter-reset: step; list-style:none; padding-left:0; }
+  .steps li { counter-increment: step; position:relative; padding:8px 0 8px 42px; border-bottom:1px dashed #EDE9FE; }
+  .steps li::before { content: counter(step); position:absolute; left:0; top:7px; width:26px; height:26px; background:#7C3AED; color:#fff; border-radius:50%; text-align:center; line-height:26px; font-weight:700; font-size:12px; }
+  .example { background:#FFF7ED; border:1px solid #FED7AA; border-left:3px solid #F59E0B; border-radius:8px; padding:12px 16px; margin:12px 0; font-size:12px; }
+  .example .t { color:#92400E; font-weight:700; }
+  .ask li { margin:6px 0; }
+  .footer { margin-top:26px; padding-top:10px; border-top:1px solid #EDE9FE; color:#9181C2; font-size:10.5px; }
+  strong { color:#3b0764; }
+  .pill { display:inline-block; background:#F3F0FF; color:#5B21B6; font-size:10.5px; padding:2px 9px; border-radius:10px; font-weight:600; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="sub">📦 UK2ME Online</div>
+  <h1>What's Coming Next</h1>
+  <div class="tagline">Clearer delivery dates · easy disputes &amp; refunds · see everything before you pay</div>
+  <div class="meta">A plain-English overview for the UK2ME team &nbsp;·&nbsp; 2 June 2026</div>
+</div>
+
+<p class="lead">
+  We're upgrading UK2ME so your customers always know <strong>when their order will arrive</strong>,
+  can <strong>sort out any problem easily</strong>, and can <strong>see the full picture before they pay</strong>.
+  This overview explains what's changing in everyday language — the technical plan lives in the separate
+  developer work plan.
+</p>
+
+<h2>1. What your customers will notice</h2>
+
+<div class="feat"><div class="ic">📅</div><div><div class="t">Clear delivery dates on every order</div>
+  Instead of a vague "5–10 days", each order shows a <strong>despatch day</strong> and an
+  <strong>estimated arrival window</strong> in Lagos, worked out automatically.</div></div>
+
+<div class="feat"><div class="ic">🚚</div><div><div class="t">A weekly despatch rhythm customers can rely on</div>
+  We send orders out <strong>every Thursday</strong> from both the UK and the USA. The system knows this and
+  tells the customer which Thursday their order will make.</div></div>
+
+<div class="feat"><div class="ic">⚡</div><div><div class="t">A faster option for UK orders</div>
+  UK shoppers can choose <strong>Express</strong> — both for getting the item to our UK hub and for the trip
+  to Lagos. (Express isn't offered on US orders.)</div></div>
+
+<div class="feat"><div class="ic">🧾</div><div><div class="t">A "Delivery Note" before payment</div>
+  Before paying, the customer sees a simple note: the journey, the chosen speed, the despatch Thursday and the
+  expected delivery window — so there are <strong>no surprises</strong>. Your team can see the same note in admin.</div></div>
+
+<div class="feat"><div class="ic">🛟</div><div><div class="t">Easy disputes &amp; refunds</div>
+  A clear <strong>"Report a problem / Request a refund"</strong> button on each order. The customer and your team
+  get <strong>email updates at every step</strong> until it's resolved.</div></div>
+
+<div class="feat"><div class="ic">✉️</div><div><div class="t">Reliable email updates</div>
+  Every important step — order placed, invoice ready, payment received, shipped, delivered, dispute, refund —
+  sends an email that <strong>actually arrives</strong>, with delivery tracked internally.</div></div>
+
+<h2>2. How the delivery timing works</h2>
+<p>Every order travels in three simple stages. The system adds them up (and lands on the right Thursday) to give an arrival window:</p>
+
+<table>
+  <tr><th>Stage</th><th>What happens</th><th>Standard</th><th>Express <span class="pill">UK only</span></th></tr>
+  <tr><td><strong>1. To our hub</strong></td><td>The shop sends the item to our UK or US warehouse</td><td>3–5 days</td><td>1–2 days</td></tr>
+  <tr><td><strong>2. Despatch day</strong></td><td>We ship out every <strong>Thursday</strong> from the UK &amp; US</td><td colspan="2" style="text-align:center;">Weekly — Thursdays</td></tr>
+  <tr><td><strong>3. To Lagos</strong></td><td>From our warehouse to Nigeria</td><td>5–10 working days</td><td>2–3 working days</td></tr>
+</table>
+
+<div class="example">
+  <span class="t">Example —</span> A UK customer orders on a <strong>Monday</strong> (standard speed). The item reaches our UK hub
+  by mid-week, makes <strong>that Thursday's despatch</strong>, and arrives in Lagos roughly <strong>1–2 weeks later</strong>.
+  If the item would miss Thursday's cut-off, the system simply quotes the <strong>following Thursday</strong> — honestly, up front.
+</div>
+
+<p>All these timings are <strong>adjustable by your team</strong> from the admin settings, so if despatch days or
+typical shipping times change, we update them without needing new software.</p>
+
+<h2>3. Disputes &amp; refunds, step by step</h2>
+<ol class="steps">
+  <li>The customer opens an order and taps <strong>"Report a problem / Request a refund"</strong>, choosing a reason and adding details.</li>
+  <li>You and the customer both get an <strong>email confirming the issue is logged</strong>.</li>
+  <li>Your team reviews it in admin and marks it <strong>under review</strong>, then either <strong>resolves</strong> (with a refund if agreed) or <strong>declines</strong> with a note.</li>
+  <li>The customer is <strong>emailed at each step</strong>. When a refund is approved, you send the money the usual way and the order is marked <strong>refunded</strong> for a clean record.</li>
+</ol>
+
+<h2>4. The rest of this upgrade (recap)</h2>
+<p>Alongside the delivery and dispute features, this phase also delivers what we agreed earlier:</p>
+<ul>
+  <li><strong>Separate UK (£) and US ($) baskets</strong> — customers shop one region at a time, with the right currency and rules.</li>
+  <li><strong>Staff-built invoices you approve and pay</strong> — the order stays pending until the customer pays, and the customer sees a clear cost breakdown.</li>
+  <li><strong>An alert to your team the moment an order is placed</strong>, including the product link, so you can review it quickly.</li>
+</ul>
+
+<h2>5. Roughly how long</h2>
+<p>The delivery dates, delivery note, and dispute/refund features add about <strong>one to one-and-a-half weeks</strong>
+of work on top of the core upgrade. The delivery date calculator can be built straight away, in parallel with the rest.</p>
+
+<h2>6. A few things we need from you</h2>
+<p>To finish these features exactly the way you run the business, please confirm:</p>
+<ul class="ask">
+  <li><strong>Cut-off for Thursday despatch</strong> — by which day must an item reach our hub to make that week's Thursday? (We've assumed Wednesday.)</li>
+  <li><strong>Express</strong> — confirm it's <strong>UK-only</strong>, and whether customers pick it themselves at checkout or request it from your team.</li>
+  <li><strong>Refund rules</strong> — how long after delivery can a customer request a refund, and do you allow <strong>partial</strong> refunds or full only?</li>
+  <li><strong>Costs to confirm</strong> (from earlier): US minimum service charge &amp; threshold, the international transfer fee, the Nigeria per-kg rate, and delivery beyond Lagos.</li>
+  <li><strong>Which inbox</strong> should receive the new order &amp; dispute alerts?</li>
+</ul>
+
+<div class="footer">
+  UK2ME Online — Client overview · 2 June 2026 · A plain-English companion to the Milestone 2 developer work plan.
+</div>
+
+</body>
+</html>

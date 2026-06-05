@@ -1,0 +1,141 @@
+import { prisma } from './prisma';
+import {
+  computeServiceCharge,
+  getInternationalTransferFee,
+  getDomesticPostage,
+  getStoreToWarehouseFee,
+  getTaxUsPercent,
+} from './settings';
+
+/** A single line on the draft invoice, grouped under a store. */
+export type InvoiceDraftLineItem = {
+  storeName: string;
+  productTitle: string;
+  productUrl: string;
+  size: string | null;
+  color: string | null;
+  qty: number;
+  unitPrice: number;
+  lineTotal: number;
+  weightGrams: number | null;
+};
+
+/** Full computed draft — line items plus every money component. */
+export type InvoiceDraft = {
+  region: 'UK' | 'US';
+  currency: string;
+  lineItems: InvoiceDraftLineItem[];
+  itemsSubtotal: number;
+  storePostage: number;
+  salesTax: number;
+  internationalTransferFee: number;
+  serviceCharge: number;
+  nigeriaPostage: number;
+  domesticPostage: number;
+  total: number;
+};
+
+/**
+ * Derive a store/group key from a product URL hostname.
+ * Strips a leading "www." and returns the registrable name (e.g. "amazon", "aldo").
+ * Falls back to a trimmed raw string when the URL cannot be parsed.
+ */
+export function storeNameFromUrl(url: string): string {
+  let host: string;
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    host = (url || '').trim();
+  }
+  host = host.replace(/^www\./i, '').toLowerCase();
+  const parts = host.split('.').filter(Boolean);
+  if (parts.length === 0) return host || 'unknown';
+  // Registrable name: second-to-last label (e.g. amazon.co.uk -> amazon, aldo.com -> aldo).
+  if (parts.length >= 2) return parts[parts.length - 2];
+  return parts[0];
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+/**
+ * Build a deterministic DRAFT invoice from an order's items.
+ * Groups line items by store, then computes every money component per the M2 R2/R14 rules.
+ */
+export async function buildInvoiceDraft(orderId: string): Promise<InvoiceDraft> {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { items: { include: { productSnapshot: true } } },
+  });
+  if (!order) {
+    throw new Error(`Order ${orderId} not found`);
+  }
+
+  const region = order.region as 'UK' | 'US';
+  const currency = order.currency;
+
+  const lineItems: InvoiceDraftLineItem[] = order.items.map((item) => {
+    const snap = item.productSnapshot;
+    return {
+      storeName: storeNameFromUrl(snap.url),
+      productTitle: snap.title,
+      productUrl: snap.url,
+      size: item.size || null,
+      color: item.color || null,
+      qty: item.qty,
+      unitPrice: item.unitPrice,
+      lineTotal: item.total,
+      weightGrams: null,
+    };
+  });
+
+  const itemsSubtotal = round2(lineItems.reduce((sum, li) => sum + li.lineTotal, 0));
+
+  // Store → warehouse postage: sum per distinct store (0 when not configured).
+  const distinctStores = Array.from(new Set(lineItems.map((li) => li.storeName)));
+  const storeFees = await Promise.all(distinctStores.map((s) => getStoreToWarehouseFee(s)));
+  const storePostage = round2(storeFees.reduce((sum, f) => sum + (f?.fee ?? 0), 0));
+
+  // US sales tax only.
+  let salesTax = 0;
+  if (region === 'US') {
+    const pct = await getTaxUsPercent();
+    salesTax = round2((itemsSubtotal * pct) / 100);
+  }
+
+  const [internationalTransferFee, serviceCharge, domesticPostage] = await Promise.all([
+    getInternationalTransferFee(),
+    computeServiceCharge(region, itemsSubtotal),
+    getDomesticPostage(),
+  ]);
+
+  // Nigeria postage: per-item manual delivery price when set, else 0.
+  const nigeriaPostage = round2(
+    order.items.reduce((sum, item) => sum + (item.manualDeliveryPrice ?? 0), 0),
+  );
+
+  const total = round2(
+    itemsSubtotal +
+      storePostage +
+      salesTax +
+      internationalTransferFee +
+      serviceCharge +
+      nigeriaPostage +
+      domesticPostage,
+  );
+
+  return {
+    region,
+    currency,
+    lineItems,
+    itemsSubtotal,
+    storePostage,
+    salesTax,
+    internationalTransferFee: round2(internationalTransferFee),
+    serviceCharge: round2(serviceCharge),
+    nigeriaPostage,
+    domesticPostage: round2(domesticPostage),
+    total,
+  };
+}

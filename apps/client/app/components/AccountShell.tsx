@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { ClipboardList, FileText, LayoutDashboard, PackageSearch, Store } from 'lucide-react';
+import { ClipboardList, FileText, LayoutDashboard, PackageSearch, Store, Wallet } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
 
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: '/track-order', label: 'Track Order', icon: PackageSearch },
   { href: '/orders', label: 'Orders', icon: ClipboardList },
   { href: '/invoices', label: 'Invoices', icon: FileText },
+  { href: '/wallet', label: 'Wallet', icon: Wallet },
   { href: '/stores', label: 'Stores', icon: Store },
 ];
 

@@ -27,7 +27,9 @@ export const orderSchema = z.object({
 
 export const adapterUpdateSchema = z.object({
   enabled: z.boolean(),
-  notes: z.string().max(300).optional()
+  notes: z.string().max(300).optional(),
+  storeToWarehouseFee: z.number().min(0).nullable().optional(),
+  storeFeeCurrency: z.string().nullable().optional()
 });
 
 export const paymentInitSchema = z.object({

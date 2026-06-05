@@ -212,6 +212,21 @@ async function seedAdaptersAndSettings() {
     update: {},
     create: { key: 'shipping_rate_per_kg_ngn', value: '800' }
   });
+
+  // M2/M3 — fee settings (create-if-missing; never overwrite existing values).
+  const feeDefaults: Record<string, string> = {
+    service_charge_us_min: '0',
+    service_charge_us_threshold: '0',
+    international_transfer_fee: '0',
+    domestic_postage: '0'
+  };
+  for (const [key, value] of Object.entries(feeDefaults)) {
+    await prisma.appSetting.upsert({
+      where: { key },
+      update: {},
+      create: { key, value }
+    });
+  }
 }
 
 async function main() {
