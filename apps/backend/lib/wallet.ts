@@ -61,6 +61,74 @@ export async function credit(
   });
 }
 
+/** Sum of settled payments (RECEIVED | CAPTURED) recorded against an order. */
+export async function getPaidAmount(orderId: string): Promise<number> {
+  const rows = await prisma.payment.findMany({
+    where: { orderId, status: { in: ['RECEIVED', 'CAPTURED'] } },
+    select: { amount: true }
+  });
+  return rows.reduce((sum, p) => sum + p.amount, 0);
+}
+
+/**
+ * Apply wallet credit to an order — debit the wallet and record a
+ * `Payment{provider:"wallet"}`, atomically. The balance is re-read inside the
+ * transaction and the debit is capped to it, so a stale/oversized `amount` can
+ * never overdraw the wallet. Returns the amount actually applied (may be 0).
+ * Order-state transitions are left to the caller.
+ */
+export async function applyWalletToOrder(params: {
+  userId: string;
+  orderId: string;
+  currency: string;
+  amount: number;
+}): Promise<number> {
+  const { userId, orderId, currency, amount } = params;
+  if (!(amount > 0)) return 0;
+
+  const wallet = await getOrCreateWallet(userId);
+
+  return prisma.$transaction(async (tx) => {
+    const prior = await tx.walletTransaction.findMany({
+      where: { walletId: wallet.id, currency }
+    });
+    const balance = prior.reduce(
+      (sum, t) => sum + (t.type === 'CREDIT' ? t.amount : -t.amount),
+      0
+    );
+    const apply = Math.min(amount, balance);
+    if (!(apply > 0)) return 0;
+
+    await tx.walletTransaction.create({
+      data: {
+        walletId: wallet.id,
+        type: 'DEBIT',
+        amount: apply,
+        currency,
+        reason: `order:${orderId}`,
+        orderId,
+        balanceAfter: balance - apply
+      }
+    });
+
+    await tx.payment.create({
+      data: {
+        orderId,
+        paymentRef: `WALLET-${orderId.slice(-8).toUpperCase()}`,
+        provider: 'wallet',
+        amount: apply,
+        currency,
+        status: 'CAPTURED',
+        idempotencyKey: `wallet:${orderId}:${Date.now()}`,
+        paidAt: new Date(),
+        rawPayload: { walletDebit: true }
+      }
+    });
+
+    return apply;
+  });
+}
+
 export async function debit(
   userId: string,
   amount: number,

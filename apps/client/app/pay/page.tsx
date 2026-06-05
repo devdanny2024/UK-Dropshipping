@@ -81,6 +81,11 @@ function ClientPaymentContent() {
   const [error, setError] = useState<string | null>(null);
   const [rawGbpTotal, setRawGbpTotal] = useState<number | null>(null);
   const [success, setSuccess] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [walletCurrency, setWalletCurrency] = useState('GBP');
+  const [outstanding, setOutstanding] = useState<number | null>(null);
+  const [applyingWallet, setApplyingWallet] = useState(false);
+  const [walletNote, setWalletNote] = useState<string | null>(null);
   const { formatPrice, rates } = useCurrency();
 
   useEffect(() => {
@@ -95,10 +100,63 @@ function ClientPaymentContent() {
     } catch { /* noop */ }
   }, [params]);
 
-  const gbpTotal = rawGbpTotal != null ? formatPrice(rawGbpTotal) : null;
-  const ngnAmount = rawGbpTotal != null && rates.NGN
-    ? Number((rawGbpTotal * rates.NGN).toFixed(2))
+  // M3 R13 — load the order's authoritative total/currency and the customer's
+  // wallet balance so we can offer to pay with credit before the gateway.
+  useEffect(() => {
+    if (!orderId) return;
+    (async () => {
+      try {
+        const [orderRes, walletRes] = await Promise.all([
+          fetch(`/api/proxy/v1/orders/${orderId}`, { credentials: 'include' }),
+          fetch('/api/proxy/v1/wallet', { credentials: 'include' }),
+        ]);
+        const orderPayload = await orderRes.json();
+        const walletPayload = await walletRes.json();
+        const order = orderPayload?.data;
+        const ccy = order?.currency ?? 'GBP';
+        if (typeof order?.total === 'number') {
+          setOutstanding(order.total);
+          if (ccy === 'GBP') setRawGbpTotal(order.total);
+        }
+        setWalletCurrency(ccy);
+        const balances = walletPayload?.data?.balances ?? {};
+        setWalletBalance(Number(balances[ccy] ?? 0));
+      } catch { /* noop */ }
+    })();
+  }, [orderId]);
+
+  const payable = outstanding != null ? outstanding : rawGbpTotal;
+  const gbpTotal = payable != null ? formatPrice(payable) : null;
+  const ngnAmount = payable != null && rates.NGN
+    ? Number((payable * rates.NGN).toFixed(2))
     : null;
+
+  const applyWallet = async () => {
+    if (!orderId) return;
+    setApplyingWallet(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/proxy/v1/orders/${orderId}/wallet/apply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      const payload = await res.json();
+      if (!res.ok || !payload.ok) throw new Error(payload?.error?.message ?? 'Could not apply wallet credit');
+      const { applied, outstanding: remaining, orderPaid, currency } = payload.data;
+      setOutstanding(remaining);
+      setWalletBalance((b) => Math.max(0, b - applied));
+      if (orderPaid) {
+        setSuccess(true);
+      } else {
+        setWalletNote(`${currency} ${applied.toFixed(2)} credit applied — ${currency} ${remaining.toFixed(2)} left to pay.`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not apply wallet credit');
+    } finally {
+      setApplyingWallet(false);
+    }
+  };
 
   const startPayment = async (provider: 'paystack' | 'stripe') => {
     if (!orderId) { setError('No order ID found. Please start from the product page.'); return; }
@@ -203,6 +261,32 @@ function ClientPaymentContent() {
 
             {error && (
               <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">{error}</div>
+            )}
+
+            {/* Wallet credit (M3 R13) */}
+            {walletBalance > 0 && (
+              <div className="rounded-lg border border-border p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-semibold">Wallet credit</div>
+                  <div className="text-sm text-muted-foreground">Balance: {walletCurrency} {walletBalance.toFixed(2)}</div>
+                </div>
+                {walletNote ? (
+                  <p className="text-sm font-medium text-green-600">{walletNote}</p>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full gap-2"
+                    disabled={applyingWallet || loading !== null}
+                    onClick={applyWallet}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {applyingWallet
+                      ? 'Applying…'
+                      : `Apply ${walletCurrency} ${Math.min(walletBalance, payable ?? walletBalance).toFixed(2)} credit`}
+                  </Button>
+                )}
+              </div>
             )}
 
             <Separator />

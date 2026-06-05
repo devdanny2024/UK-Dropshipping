@@ -7,6 +7,7 @@ import { prisma } from '../../../../../lib/prisma';
 import { createOrderEvent } from '../../../../../lib/events';
 import { sendMail } from '../../../../../lib/mailer';
 import { paymentConfirmedEmail } from '../../../../../lib/emails';
+import { getPaidAmount } from '../../../../../lib/wallet';
 import crypto from 'node:crypto';
 
 export async function POST(request: NextRequest) {
@@ -25,17 +26,22 @@ export async function POST(request: NextRequest) {
     return ok({ orderId: order.id, status: order.status });
   }
 
+  // Settle only what is still outstanding — wallet credit (M3 R13) may already
+  // cover part (or all) of the order.
+  const paid = await getPaidAmount(order.id);
+  const outstanding = Math.round(Math.max(0, order.total - paid) * 100) / 100;
+
   const ref = `DEMO-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
   const idempotencyKey = `demo:${order.id}`;
 
   const existing = await prisma.payment.findUnique({ where: { idempotencyKey } });
-  if (!existing) {
+  if (!existing && outstanding > 0) {
     await prisma.payment.create({
       data: {
         orderId: order.id,
         paymentRef: ref,
         provider: 'demo',
-        amount: order.total,
+        amount: outstanding,
         currency: order.currency,
         status: 'CAPTURED',
         idempotencyKey,
