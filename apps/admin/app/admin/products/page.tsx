@@ -63,6 +63,8 @@ export default function AdminProductsPage() {
   const [importCurrency, setImportCurrency] = useState<string | null>(null);
   const [importImageUrl, setImportImageUrl] = useState<string | null>(null);
   const [importSnapshotId, setImportSnapshotId] = useState<string | null>(null);
+  const [prefill, setPrefill] = useState<Partial<Product> | null>(null);
+  const [formKey, setFormKey] = useState(0);
 
   const load = async () => {
     setLoading(true);
@@ -126,6 +128,39 @@ export default function AdminProductsPage() {
     } finally {
       setImportLoading(false);
     }
+  };
+
+  // Opens the full product form in "create" mode, optionally pre-filled with
+  // whatever details we have (from an import or none for pure manual entry).
+  // Uses React state + a remount key instead of poking DOM inputs, so the
+  // pre-filled values reliably land in the editable form every time.
+  const openCreateForm = (data?: Partial<Product>) => {
+    setEditing(null);
+    setPrefill(data ?? null);
+    setFormCategoryId(data?.categoryId ?? '');
+    setFormIsActive(true);
+    setFormIsFeatured(false);
+    setFormKey((key) => key + 1);
+    setOpen(true);
+  };
+
+  const useImportedDetails = () => {
+    setImportOpen(false);
+    openCreateForm({
+      name: importTitle ?? undefined,
+      externalUrl: importUrl || undefined,
+      images: importImageUrl ? [importImageUrl] : undefined,
+      priceGBP: importPrice ?? undefined,
+      currency: importCurrency ?? undefined,
+      categoryId: categories[0]?.id
+    });
+  };
+
+  // Manual fallback: proceed to the editable form even when auto-resolve
+  // fails or returns nothing — carrying over the URL if one was entered.
+  const enterManually = () => {
+    setImportOpen(false);
+    openCreateForm({ externalUrl: importUrl || undefined });
   };
 
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -233,15 +268,26 @@ export default function AdminProductsPage() {
             <p className="text-sm text-muted-foreground">Manage catalogue products and featured items.</p>
           </div>
           <div className="flex items-center gap-2">
-            <Dialog open={open} onOpenChange={setOpen}>
+            <Dialog
+              open={open}
+              onOpenChange={(value) => {
+                setOpen(value);
+                if (!value) {
+                  setEditing(null);
+                  setPrefill(null);
+                }
+              }}
+            >
               <DialogTrigger asChild>
                 <Button
                   className="gap-2"
                   onClick={() => {
                     setEditing(null);
+                    setPrefill(null);
                     setFormCategoryId('');
                     setFormIsActive(true);
                     setFormIsFeatured(false);
+                    setFormKey((key) => key + 1);
                   }}
                 >
                   <Plus className="h-4 w-4" />
@@ -252,10 +298,10 @@ export default function AdminProductsPage() {
                 <DialogHeader>
                   <DialogTitle>{editing ? 'Edit product' : 'Create product'}</DialogTitle>
                 </DialogHeader>
-                <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSave}>
+                <form key={formKey} className="grid gap-4 md:grid-cols-2" onSubmit={handleSave}>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="name">Name</Label>
-                <Input id="name" name="name" defaultValue={editing?.name ?? ''} required />
+                <Input id="name" name="name" defaultValue={editing?.name ?? prefill?.name ?? ''} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="slug">Slug</Label>
@@ -284,7 +330,7 @@ export default function AdminProductsPage() {
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="images">Images (comma separated URLs)</Label>
-                <Input id="images" name="images" defaultValue={Array.isArray(editing?.images) ? editing?.images?.join(', ') : ''} />
+                <Input id="images" name="images" defaultValue={Array.isArray(editing?.images) ? editing?.images?.join(', ') : Array.isArray(prefill?.images) ? prefill?.images?.join(', ') : ''} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="productCode">Product code</Label>
@@ -292,15 +338,15 @@ export default function AdminProductsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="externalUrl">External URL</Label>
-                <Input id="externalUrl" name="externalUrl" defaultValue={editing?.externalUrl ?? ''} />
+                <Input id="externalUrl" name="externalUrl" defaultValue={editing?.externalUrl ?? prefill?.externalUrl ?? ''} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="priceGBP">Price (GBP)</Label>
-                <Input id="priceGBP" name="priceGBP" type="number" step="0.01" defaultValue={editing?.priceGBP ?? ''} />
+                <Input id="priceGBP" name="priceGBP" type="number" step="0.01" defaultValue={editing?.priceGBP ?? prefill?.priceGBP ?? ''} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="currency">Currency</Label>
-                <Input id="currency" name="currency" defaultValue={editing?.currency ?? 'GBP'} />
+                <Input id="currency" name="currency" defaultValue={editing?.currency ?? prefill?.currency ?? 'GBP'} />
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="isActive">Active</Label>
@@ -380,6 +426,9 @@ export default function AdminProductsPage() {
                     >
                       {importLoading ? 'Resolving…' : 'Fetch details'}
                     </Button>
+                    <Button type="button" variant="ghost" onClick={enterManually}>
+                      Enter details manually
+                    </Button>
                     {importSnapshotId && !importLoading && (
                       <span className="text-xs text-muted-foreground">Snapshot created: {importSnapshotId}</span>
                     )}
@@ -400,44 +449,16 @@ export default function AdminProductsPage() {
                           ? `Price: ${importCurrency ?? 'GBP'} ${importPrice.toFixed(2)}`
                           : 'Price not detected yet'}
                       </p>
+                      <p className="text-xs text-muted-foreground">
+                        Opens the full editable form — adjust anything and fill in the details we couldn&apos;t fetch (category, description, sizes, colours, weight).
+                      </p>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          const defaultCategoryId = categories[0]?.id ?? '';
-                          setFormCategoryId(defaultCategoryId);
-                          setFormIsActive(true);
-                          setFormIsFeatured(false);
-                          setEditing(null);
-                          setOpen(true);
-                          setImportOpen(false);
-                          setTimeout(() => {
-                            const nameInput = document.getElementById('name') as HTMLInputElement | null;
-                            const externalUrlInput = document.getElementById('externalUrl') as HTMLInputElement | null;
-                            const imagesInput = document.getElementById('images') as HTMLInputElement | null;
-                            const priceInput = document.getElementById('priceGBP') as HTMLInputElement | null;
-                            const currencyInput = document.getElementById('currency') as HTMLInputElement | null;
-
-                            if (nameInput && importTitle) {
-                              nameInput.value = importTitle;
-                            }
-                            if (externalUrlInput && importUrl) {
-                              externalUrlInput.value = importUrl;
-                            }
-                            if (imagesInput && importImageUrl) {
-                              imagesInput.value = importImageUrl;
-                            }
-                            if (priceInput && importPrice !== null) {
-                              priceInput.value = importPrice.toString();
-                            }
-                            if (currencyInput && importCurrency) {
-                              currencyInput.value = importCurrency;
-                            }
-                          }, 50);
-                        }}
+                        onClick={useImportedDetails}
                       >
-                        Use in new product
+                        Edit &amp; save product
                       </Button>
                     </div>
                   )}
@@ -510,9 +531,11 @@ export default function AdminProductsPage() {
                         size="icon"
                         onClick={() => {
                           setEditing(product);
+                          setPrefill(null);
                           setFormCategoryId(product.categoryId);
                           setFormIsActive(product.isActive);
                           setFormIsFeatured(product.isFeatured);
+                          setFormKey((key) => key + 1);
                           setOpen(true);
                         }}
                       >
