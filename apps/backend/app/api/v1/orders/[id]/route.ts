@@ -33,6 +33,15 @@ export async function GET(
     createdAt: order.createdAt.toISOString(),
     items: order.items,
     events: order.events,
-    shipments: order.shipments
+    shipments: order.shipments,
+    // M2 R8 — delivery estimate snapshot for the pre-payment Delivery Note
+    region: order.region,
+    leg1Speed: order.leg1Speed,
+    leg2Speed: order.leg2Speed,
+    despatchDate: order.despatchDate?.toISOString() ?? null,
+    estDeliveryMin: order.estDeliveryMin?.toISOString() ?? null,
+    estDeliveryMax: order.estDeliveryMax?.toISOString() ?? null,
+    deliveryQuotedAt: order.deliveryQuotedAt?.toISOString() ?? null,
+    deliveryNote: order.deliveryNote ?? null
   });
 }

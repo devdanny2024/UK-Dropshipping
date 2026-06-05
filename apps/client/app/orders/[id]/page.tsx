@@ -9,6 +9,7 @@ import { StatusBadge } from '@/app/components/StatusBadge';
 import { AccountShell } from '@/app/components/AccountShell';
 import { OrderStatusTimeline } from '@/app/components/OrderStatusTimeline';
 import { OrderInvoice } from '@/app/components/OrderInvoice';
+import { DeliveryNote } from '@/app/components/DeliveryNote';
 import { OrderComplaints } from '@/app/components/OrderComplaints';
 import { WeightPriceRequest } from '@/app/components/WeightPriceRequest';
 import { useCurrency } from '@/app/hooks/use-currency';
@@ -32,6 +33,10 @@ type OrderDetail = {
   }>;
   events: OrderEvent[];
   shipments: Shipment[];
+  despatchDate?: string | null;
+  estDeliveryMin?: string | null;
+  estDeliveryMax?: string | null;
+  deliveryNote?: { legs?: Array<{ leg?: number; speed?: string; label?: string }>; notices?: string[] } | null;
 };
 
 export default function ClientTrackingPage() {
@@ -164,6 +169,15 @@ export default function ClientTrackingPage() {
             </div>
           </CardContent>
         </Card>
+
+        <DeliveryNote
+          data={{
+            despatchDate: order.despatchDate,
+            estDeliveryMin: order.estDeliveryMin,
+            estDeliveryMax: order.estDeliveryMax,
+            deliveryNote: order.deliveryNote
+          }}
+        />
 
         <OrderInvoice orderId={order.id} currency={order.currency} />
 
