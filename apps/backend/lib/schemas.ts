@@ -144,6 +144,7 @@ export const checkoutSchema = z.object({
   }),
   deliveryType: z.enum(['door', 'pickup']).default('door'),
   notes: z.string().optional(),
+  region: z.enum(['UK', 'US']).default('UK'),
 });
 
 export const simulatePaymentSchema = z.object({

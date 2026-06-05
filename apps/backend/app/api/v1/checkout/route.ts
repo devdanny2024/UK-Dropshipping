@@ -27,6 +27,12 @@ export async function POST(request: NextRequest) {
 
   const doorFee = await getDeliveryFee(data.deliveryType ?? 'door');
 
+  // Region drives the order currency (UK → GBP, US → USD). Derived server-side,
+  // never trusted from the client. Item `priceGBP` already holds the price in
+  // the basket's region currency (kept under that field name for compatibility).
+  const region = data.region;
+  const currency = region === 'US' ? 'USD' : 'GBP';
+
   const itemsTotal = data.items.reduce((sum, item) => sum + item.priceGBP * item.quantity, 0);
   const total = itemsTotal + doorFee;
 
@@ -53,7 +59,7 @@ export async function POST(request: NextRequest) {
           title: item.name,
           imageUrl: item.imageUrl ?? null,
           price: item.priceGBP,
-          currency: 'GBP',
+          currency,
           raw: item as object,
         }
       })
@@ -65,7 +71,8 @@ export async function POST(request: NextRequest) {
       userId: session.userId,
       addressId: address.id,
       status: 'PLACED',
-      currency: 'GBP',
+      region,
+      currency,
       total,
       items: {
         create: snapshots.map((snap, i) => ({
