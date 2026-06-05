@@ -7,6 +7,9 @@ import { prisma } from '../../../../lib/prisma';
 import { createOrderEvent } from '../../../../lib/events';
 import { sendMail } from '../../../../lib/mailer';
 import { orderReceivedEmail, adminOrderPlacedEmail } from '../../../../lib/emails';
+import { estimateDelivery } from '../../../../lib/delivery-engine';
+import { getDeliveryConfig } from '../../../../lib/settings';
+import { Prisma } from '@prisma/client';
 
 async function getDeliveryFee(type: 'door' | 'pickup'): Promise<number> {
   const key = type === 'door' ? 'delivery_door_fee_gbp' : 'delivery_pickup_fee_gbp';
@@ -76,6 +79,40 @@ export async function POST(request: NextRequest) {
       }
     }
   });
+
+  // M2 R8 — snapshot a delivery estimate on the order so the customer sees a
+  // Delivery Note before payment. Best-effort: a failure here must never block
+  // an order from being placed.
+  try {
+    const deliveryConfig = await getDeliveryConfig();
+    const estimate = estimateDelivery({
+      placedAt: order.createdAt,
+      region: order.region,
+      leg1Speed: 'STD',
+      leg2Speed: 'STD',
+      config: deliveryConfig,
+    });
+    await prisma.order.update({
+      where: { id: order.id },
+      data: {
+        leg1Speed: estimate.leg1Speed,
+        leg2Speed: estimate.leg2Speed,
+        despatchDate: estimate.despatchDate,
+        estDeliveryMin: estimate.deliveryMin,
+        estDeliveryMax: estimate.deliveryMax,
+        deliveryQuotedAt: new Date(),
+        deliveryNote: {
+          legs: estimate.legs,
+          notices: estimate.notices,
+          leg1Speed: estimate.leg1Speed,
+          leg2Speed: estimate.leg2Speed,
+          expressAvailable: estimate.expressAvailable,
+        } as unknown as Prisma.InputJsonValue,
+      },
+    });
+  } catch (err) {
+    console.error('Delivery estimate failed for order', order.id, err);
+  }
 
   await createOrderEvent(order.id, 'ORDER', `Order created — ${data.deliveryType === 'door' ? 'door delivery' : 'pickup'}`);
   if (data.notes) {
