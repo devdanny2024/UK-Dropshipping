@@ -8,7 +8,7 @@ import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'My Account', icon: LayoutDashboard },
   { href: '/track-order', label: 'Track Order', icon: PackageSearch },
   { href: '/orders', label: 'Orders', icon: ClipboardList },
   { href: '/invoices', label: 'Invoices', icon: FileText },

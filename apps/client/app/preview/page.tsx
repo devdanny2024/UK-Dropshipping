@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ExternalLink, Clock, ShoppingCart, Loader2, AlertTriangle, Edit2 } from 'lucide-react';
+import { ExternalLink, Clock, ShoppingCart, Loader2, Edit2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
@@ -10,9 +10,11 @@ import { Label } from '@/app/components/ui/label';
 import { Badge } from '@/app/components/ui/badge';
 import { Input } from '@/app/components/ui/input';
 import { useCart } from '@/app/components/cart/use-cart';
+import { useCurrency, US_TAX_RATE } from '@/app/hooks/use-currency';
 
 const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'UK4', 'UK5', 'UK6', 'UK7', 'UK8', 'UK9', 'UK10', 'UK11', 'UK12', 'One Size'];
 const COMMON_COLORS = ['Black', 'White', 'Navy', 'Grey', 'Red', 'Blue', 'Green', 'Pink', 'Brown', 'Beige', 'Other'];
+const COMMON_CATEGORIES = ['Clothing', 'Shoes', 'Accessories', 'Electronics', 'Home & Garden', 'Beauty', 'Sports', 'Toys', 'Books', 'Other'];
 
 function PreviewContent() {
   const router = useRouter();
@@ -22,7 +24,6 @@ function PreviewContent() {
   const [quantity, setQuantity] = useState(1);
   const [productUrl, setProductUrl] = useState(() => params.get('url') ?? '');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [resolved, setResolved] = useState<{
     snapshotId?: string;
     title: string;
@@ -32,18 +33,19 @@ function PreviewContent() {
     url: string;
     manual?: boolean;
   } | null>(null);
-  const [quoteLoading, setQuoteLoading] = useState(false);
-  const [quoteError, setQuoteError] = useState<string | null>(null);
   const [manualPrice, setManualPrice] = useState<string>('');
 
-  // Fallback / manual entry state (when crawler fails completely)
+  // Manual entry state
   const [showManualForm, setShowManualForm] = useState(false);
+  const [manualProductLink, setManualProductLink] = useState('');
   const [manualTitle, setManualTitle] = useState('');
+  const [manualCategory, setManualCategory] = useState('Clothing');
   const [manualImageUrl, setManualImageUrl] = useState('');
   const [manualCreating, setManualCreating] = useState(false);
   const [manualError, setManualError] = useState<string | null>(null);
 
   const { addItem } = useCart();
+  const { formatAmount, toGBP } = useCurrency();
 
   const hasUrl = Boolean(params.get('url'));
 
@@ -59,67 +61,30 @@ function PreviewContent() {
     const effectivePrice = detectedPrice && detectedPrice > 0
       ? detectedPrice
       : (parseFloat(manualPrice) || null);
+    const sourceCurrency = resolved?.currency ?? 'GBP';
+    const isUSStore = sourceCurrency === 'USD';
+    const usTax = (isUSStore && effectivePrice) ? effectivePrice * US_TAX_RATE : 0;
     return {
       name: resolved?.title ?? 'Product',
       price: effectivePrice,
+      priceWithTax: effectivePrice ? effectivePrice + usTax : null,
       priceDetected: Boolean(detectedPrice && detectedPrice > 0),
-      currency: resolved?.currency ?? 'GBP',
+      currency: sourceCurrency,
+      isUSStore,
+      usTax,
       image: resolved?.imageUrl ?? fallbackImage,
       store,
       url
     };
   }, [params, resolved, manualPrice, store]);
 
-  const handleGenerateQuote = async () => {
-    if (!resolved?.snapshotId) return;
-    setQuoteLoading(true);
-    setQuoteError(null);
-    try {
-      const res = await fetch('/api/proxy/v1/quotes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          productSnapshotId: resolved.snapshotId,
-          size,
-          color,
-          qty: quantity,
-          addressId: 'placeholder',
-          ...(product.price && !product.priceDetected ? { overridePrice: product.price } : {})
-        })
-      });
-      const payload = await res.json();
-      if (res.status === 401) {
-        router.push(`/login?next=${encodeURIComponent(window.location.href)}`);
-        return;
-      }
-      if (!res.ok || !payload.ok) {
-        throw new Error(payload?.error?.message ?? 'Failed to create quote');
-      }
-      localStorage.setItem('uk2me-active-quote', JSON.stringify(payload.data));
-      router.push(`/quote?quoteId=${payload.data.id}`);
-    } catch (err) {
-      setQuoteError(err instanceof Error ? err.message : 'Failed to create quote');
-    } finally {
-      setQuoteLoading(false);
-    }
-  };
-
   const handleCreateManualSnapshot = async () => {
     const price = parseFloat(manualPrice);
-    if (!manualTitle.trim()) {
-      setManualError('Please enter a product name.');
-      return;
-    }
-    if (!price || price <= 0) {
-      setManualError('Please enter a valid price.');
-      return;
-    }
-    const url = params.get('url');
-    if (!url) {
-      setManualError('No product URL found.');
-      return;
-    }
+    if (!manualTitle.trim()) { setManualError('Please enter a product name.'); return; }
+    if (!price || price <= 0) { setManualError('Please enter a valid price.'); return; }
+
+    const url = manualProductLink.trim() || params.get('url');
+    if (!url) { setManualError('Please enter a product link.'); return; }
 
     setManualCreating(true);
     setManualError(null);
@@ -132,12 +97,13 @@ function PreviewContent() {
           title: manualTitle.trim(),
           price,
           currency: 'GBP',
-          imageUrl: manualImageUrl.trim() || undefined
+          imageUrl: manualImageUrl.trim() || undefined,
+          categoryName: manualCategory,
         })
       });
       const payload = await res.json();
       if (!res.ok || !payload.ok) {
-        throw new Error(payload?.error?.message ?? 'Failed to create manual snapshot');
+        throw new Error(payload?.error?.message ?? 'Failed to create snapshot');
       }
       const data = payload.data;
       setResolved({
@@ -149,10 +115,9 @@ function PreviewContent() {
         url: data.url,
         manual: true
       });
-      setError(null);
       setShowManualForm(false);
     } catch (err) {
-      setManualError(err instanceof Error ? err.message : 'Failed to create manual snapshot');
+      setManualError(err instanceof Error ? err.message : 'Failed to create snapshot');
     } finally {
       setManualCreating(false);
     }
@@ -162,9 +127,11 @@ function PreviewContent() {
     const url = params.get('url');
     if (!url) return;
 
+    // Pre-fill the manual product link field with the URL
+    setManualProductLink(url);
+
     let cancelled = false;
     setIsLoading(true);
-    setError(null);
     setShowManualForm(false);
     setResolved(null);
 
@@ -176,7 +143,7 @@ function PreviewContent() {
       .then(async (res) => {
         if (!res.ok) {
           const payload = await res.json().catch(() => null);
-          const message = payload?.error?.message ?? 'Unable to resolve product details.';
+          const message = payload?.error?.message ?? 'Unable to fetch product.';
           throw new Error(message);
         }
         return res.json();
@@ -184,9 +151,7 @@ function PreviewContent() {
       .then((payload) => {
         if (cancelled) return;
         const data = payload?.data ?? payload;
-        if (!data?.title) {
-          throw new Error('Product details were incomplete. Please enter them manually below.');
-        }
+        if (!data?.title) throw new Error('Incomplete product data');
         setResolved({
           snapshotId: data.id,
           title: data.title,
@@ -196,22 +161,14 @@ function PreviewContent() {
           url: data.url ?? url
         });
       })
-      .catch((err: Error) => {
-        if (!cancelled) {
-          setError(err.message);
-          // Auto-show the manual form when the crawler fails
-          setShowManualForm(true);
-        }
+      .catch(() => {
+        if (!cancelled) setShowManualForm(true);
       })
       .finally(() => {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
+        if (!cancelled) setIsLoading(false);
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [params]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -220,6 +177,7 @@ function PreviewContent() {
     router.push(`/preview?url=${encodeURIComponent(productUrl.trim())}`);
   };
 
+  // ── No URL yet: show link-paste screen ───────────────────────────────────
   if (!hasUrl) {
     return (
       <div className="min-h-screen bg-background py-12">
@@ -247,10 +205,157 @@ function PreviewContent() {
     );
   }
 
+  // ── Loading spinner ───────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <p className="text-sm">Fetching product details…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Manual entry form (shown when crawler fails) ──────────────────────────
+  if (showManualForm && !resolved) {
+    return (
+      <div className="min-h-screen bg-background py-12">
+        <div className="container mx-auto px-4 max-w-xl">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Edit2 className="h-5 w-5" />
+                Enter Product Details
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Fill in the details from the product page to continue with your order.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+
+              {/* Product Link */}
+              <div className="space-y-1.5">
+                <Label htmlFor="m-url">Product Link <span className="text-destructive">*</span></Label>
+                <Input
+                  id="m-url"
+                  placeholder="https://www.marksandspencer.com/..."
+                  value={manualProductLink}
+                  onChange={(e) => setManualProductLink(e.target.value)}
+                />
+              </div>
+
+              {/* Product Name */}
+              <div className="space-y-1.5">
+                <Label htmlFor="m-title">Product Name <span className="text-destructive">*</span></Label>
+                <Input
+                  id="m-title"
+                  placeholder="e.g. M&S Slim Fit Chinos"
+                  value={manualTitle}
+                  onChange={(e) => setManualTitle(e.target.value)}
+                />
+              </div>
+
+              {/* Price */}
+              <div className="space-y-1.5">
+                <Label htmlFor="m-price">Price (£ GBP) <span className="text-destructive">*</span></Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-muted-foreground">£</span>
+                  <Input
+                    id="m-price"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={manualPrice}
+                    onChange={(e) => setManualPrice(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Size + Color in a row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="m-size">Size</Label>
+                  <Select value={size} onValueChange={setSize}>
+                    <SelectTrigger id="m-size">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMMON_SIZES.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="m-color">Color</Label>
+                  <Select value={color} onValueChange={setColor}>
+                    <SelectTrigger id="m-color">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMMON_COLORS.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Category */}
+              <div className="space-y-1.5">
+                <Label htmlFor="m-category">Category</Label>
+                <Select value={manualCategory} onValueChange={setManualCategory}>
+                  <SelectTrigger id="m-category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COMMON_CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Image URL (optional) */}
+              <div className="space-y-1.5">
+                <Label htmlFor="m-image">Product Image URL <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                <Input
+                  id="m-image"
+                  placeholder="https://..."
+                  value={manualImageUrl}
+                  onChange={(e) => setManualImageUrl(e.target.value)}
+                />
+              </div>
+
+              {manualError && (
+                <p className="text-sm text-destructive">{manualError}</p>
+              )}
+
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={handleCreateManualSnapshot}
+                disabled={manualCreating}
+              >
+                {manualCreating
+                  ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Adding product…</>
+                  : 'Continue to order'}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Normal product view ───────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background py-12">
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
           {/* Left: Product image */}
           <div>
             <Card>
@@ -265,81 +370,6 @@ function PreviewContent() {
                 />
               </CardContent>
             </Card>
-
-            {/* Manual entry fallback card — shown when crawler fails */}
-            {(showManualForm || (error && !resolved)) && (
-              <Card className="mt-4 border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base text-amber-900 dark:text-amber-200">
-                    <Edit2 className="h-4 w-4" />
-                    Enter product details manually
-                  </CardTitle>
-                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                    Our crawler couldn&apos;t read this page. Fill in the details from the product page and we&apos;ll still create your quote.
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-amber-800 dark:text-amber-300">Product name *</Label>
-                    <Input
-                      placeholder="e.g. Nike Air Max 270 UK9"
-                      value={manualTitle}
-                      onChange={(e) => setManualTitle(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-amber-800 dark:text-amber-300">Price (GBP) *</Label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-amber-800 dark:text-amber-300">£</span>
-                      <Input
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        placeholder="e.g. 109.99"
-                        value={manualPrice}
-                        onChange={(e) => setManualPrice(e.target.value)}
-                        className="w-36"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-amber-800 dark:text-amber-300">Image URL (optional)</Label>
-                    <Input
-                      placeholder="https://..."
-                      value={manualImageUrl}
-                      onChange={(e) => setManualImageUrl(e.target.value)}
-                    />
-                  </div>
-                  {manualError && (
-                    <p className="text-sm text-destructive">{manualError}</p>
-                  )}
-                  <Button
-                    className="w-full"
-                    onClick={handleCreateManualSnapshot}
-                    disabled={manualCreating}
-                  >
-                    {manualCreating ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Creating...
-                      </>
-                    ) : (
-                      'Use these details'
-                    )}
-                  </Button>
-                  {!showManualForm && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-amber-700"
-                      onClick={() => setShowManualForm(true)}
-                    >
-                      Enter details manually
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            )}
           </div>
 
           {/* Right: Product details + order form */}
@@ -357,29 +387,31 @@ function PreviewContent() {
                 <CardTitle className="text-2xl">{product.name}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {isLoading && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Resolving product details...
-                  </div>
-                )}
-                {error && !resolved && (
-                  <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200 flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-                    <span>
-                      {error} Please fill in the product details on the left to continue.
-                    </span>
-                  </div>
-                )}
 
                 {/* Price section */}
-                <div>
+                <div className="space-y-2">
                   {product.priceDetected ? (
                     <>
                       <div className="text-3xl font-bold text-foreground">
-                        {product.currency} {product.price!.toFixed(2)}
+                        {formatAmount(product.price, product.currency)}
                       </div>
-                      <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                      {product.isUSStore && product.usTax > 0 && (
+                        <div className="rounded-md border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 px-3 py-2 text-sm space-y-1">
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Product price</span>
+                            <span>{formatAmount(product.price, product.currency)}</span>
+                          </div>
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>US Sales Tax (est. 8%)</span>
+                            <span>+ {formatAmount(product.usTax, product.currency)}</span>
+                          </div>
+                          <div className="flex justify-between font-semibold border-t border-blue-200 dark:border-blue-800 pt-1 mt-1">
+                            <span>Total incl. tax</span>
+                            <span>{formatAmount(product.priceWithTax, product.currency)}</span>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Clock className="h-4 w-4" />
                         Price last checked at{' '}
                         {new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
@@ -388,9 +420,9 @@ function PreviewContent() {
                   ) : resolved ? (
                     // Crawler got snapshot but no price — allow manual price entry
                     <div className="space-y-2">
-                      <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-                        Price could not be auto-detected. Please enter the price from the product page.
-                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Price not detected. Please enter it from the product page.
+                      </p>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">{product.currency}</span>
                         <Input
@@ -403,7 +435,9 @@ function PreviewContent() {
                           className="w-36"
                         />
                         {product.price && (
-                          <span className="text-sm text-muted-foreground">= {product.currency} {product.price.toFixed(2)}</span>
+                          <span className="text-sm text-muted-foreground">
+                            = {formatAmount(product.price, product.currency)}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -426,7 +460,6 @@ function PreviewContent() {
                         </SelectContent>
                       </Select>
                     </div>
-
                     <div>
                       <Label htmlFor="color">Color</Label>
                       <Select value={color} onValueChange={setColor}>
@@ -440,7 +473,6 @@ function PreviewContent() {
                         </SelectContent>
                       </Select>
                     </div>
-
                     <div>
                       <Label htmlFor="quantity">Quantity</Label>
                       <Select value={quantity.toString()} onValueChange={(value) => setQuantity(parseInt(value, 10))}>
@@ -459,41 +491,35 @@ function PreviewContent() {
 
                 {/* Action buttons */}
                 <div className="pt-4 space-y-3">
-                  {quoteError && (
-                    <p className="text-sm text-destructive">{quoteError}</p>
-                  )}
                   <Button
-                    onClick={handleGenerateQuote}
-                    className="w-full"
-                    size="lg"
-                    disabled={isLoading || quoteLoading || !resolved?.snapshotId || !product.price}
-                  >
-                    {quoteLoading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Creating quote...
-                      </>
-                    ) : 'Generate Quote'}
-                  </Button>
-                  <Button
-                    variant="outline"
                     className="w-full gap-2"
-                    disabled={isLoading || !product.price || !resolved?.snapshotId}
-                    onClick={() =>
+                    size="lg"
+                    disabled={isLoading || !product.priceWithTax || !resolved?.snapshotId}
+                    onClick={() => {
+                      const taxInclusivePrice = product.priceWithTax ?? product.price ?? 0;
                       addItem({
                         name: product.name,
                         slug: undefined,
                         imageUrl: product.image,
-                        priceGBP: product.price ?? undefined,
+                        priceGBP: toGBP(taxInclusivePrice, product.currency),
                         quantity,
                         externalUrl: product.url,
                         productCode: undefined,
-                        categoryName: store
-                      })
-                    }
+                        categoryName: manualCategory || store,
+                        size,
+                        color
+                      });
+                    }}
                   >
                     <ShoppingCart className="h-4 w-4" />
                     Add to cart
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={() => router.back()}
+                  >
+                    Continue Shopping
                   </Button>
                   <Button
                     variant="outline"
@@ -503,19 +529,6 @@ function PreviewContent() {
                     <ExternalLink className="h-4 w-4" />
                     View on {store}
                   </Button>
-
-                  {/* Show "enter manually" button if still loading or if there's no resolved data yet */}
-                  {!resolved && !isLoading && !showManualForm && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-muted-foreground"
-                      onClick={() => setShowManualForm(true)}
-                    >
-                      <Edit2 className="h-3.5 w-3.5 mr-1.5" />
-                      Enter details manually instead
-                    </Button>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -542,9 +555,10 @@ export default function ClientProductPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-background py-12">
-          <div className="container mx-auto px-4 max-w-6xl">
-            <div className="rounded-lg border border-border p-8 text-muted-foreground">Loading preview...</div>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p className="text-sm">Loading preview…</p>
           </div>
         </div>
       }

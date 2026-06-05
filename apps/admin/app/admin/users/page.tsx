@@ -72,13 +72,13 @@ export default function AdminUsersPage() {
   return (
     <div className="p-8 space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold text-foreground">Users</h1>
-        <p className="text-muted-foreground mt-2">Customer records and engagement history</p>
+        <h1 className="text-3xl font-semibold text-foreground">Clients</h1>
+        <p className="text-muted-foreground mt-2">All registered clients, their orders, and engagement history</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>All Users</CardTitle>
+          <CardTitle>All Clients</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="relative mb-6">

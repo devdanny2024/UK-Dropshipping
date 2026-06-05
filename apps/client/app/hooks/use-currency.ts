@@ -36,6 +36,8 @@ export const useCurrencyStore = create<CurrencyState>()(
   )
 );
 
+export const US_TAX_RATE = 0.08;
+
 export function useCurrency() {
   const currency = useCurrencyStore((s) => s.currency);
   const rates = useCurrencyStore((s) => s.rates);
@@ -56,6 +58,15 @@ export function useCurrency() {
       .catch(() => markRatesLoaded());
   }, [ratesLoaded, setRates, markRatesLoaded]);
 
+  // Convert any amount in fromCurrency to GBP.
+  // rates are GBP-based (1 GBP = X currency), so USD→GBP = amount / rates.USD.
+  const toGBP = (amount: number, fromCurrency: string): number => {
+    if (fromCurrency === 'GBP') return amount;
+    const rate = rates[fromCurrency as Currency];
+    return rate ? amount / rate : amount;
+  };
+
+  // Format priceGBP in the user's selected display currency.
   const formatPrice = (priceGBP: number | null | undefined): string => {
     if (priceGBP == null) return '';
     const rate = rates[currency] ?? 1;
@@ -66,5 +77,11 @@ export function useCurrency() {
     })}`;
   };
 
-  return { currency, formatPrice };
+  // Format any amount from any source currency, converting via GBP.
+  const formatAmount = (amount: number | null | undefined, fromCurrency = 'GBP'): string => {
+    if (amount == null) return '';
+    return formatPrice(toGBP(amount, fromCurrency));
+  };
+
+  return { currency, rates, formatPrice, formatAmount, toGBP };
 }

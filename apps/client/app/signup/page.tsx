@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, MailCheck } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
@@ -27,6 +27,12 @@ function SignupContent() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [verifyEmailSent, setVerifyEmailSent] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  // Anti-bot: record when the form was rendered
+  const [formLoadedAt] = useState(() => Date.now());
+  // Anti-bot: honeypot field — real users leave this blank
+  const [honeypot, setHoneypot] = useState('');
   const googleBtnRef = useRef<HTMLDivElement>(null);
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/proxy';
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
@@ -106,6 +112,14 @@ function SignupContent() {
   const handleSignup = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+
+    // Anti-bot: reject if honeypot is filled or form submitted under 2 seconds
+    if (honeypot) return;
+    if (Date.now() - formLoadedAt < 2000) {
+      setError('Please wait a moment before submitting.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
@@ -146,6 +160,12 @@ function SignupContent() {
         return;
       }
 
+      if (payload.data?.verificationRequired) {
+        setRegisteredEmail(email);
+        setVerifyEmailSent(true);
+        return;
+      }
+
       const next = searchParams.get('next') ?? '/dashboard';
       router.push(next);
     } catch {
@@ -154,6 +174,50 @@ function SignupContent() {
       setIsSubmitting(false);
     }
   };
+
+  if (verifyEmailSent) {
+    return (
+      <div className="min-h-screen bg-background py-16">
+        <div className="container mx-auto px-4 max-w-md">
+          <Card>
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                <MailCheck className="h-7 w-7 text-primary" />
+              </div>
+              <CardTitle>Check your email</CardTitle>
+              <CardDescription>
+                We sent a verification link to <strong>{registeredEmail}</strong>.
+                Click the link in the email to activate your account.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                Didn&apos;t get it? Check your spam folder, or{' '}
+                <button
+                  type="button"
+                  className="underline text-foreground"
+                  onClick={async () => {
+                    await fetch(`${apiBase}/v1/auth/resend-verification`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                      body: JSON.stringify({ email: registeredEmail })
+                    });
+                  }}
+                >
+                  resend the email
+                </button>
+                .
+              </p>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/login">Go to login</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background py-16">
@@ -184,6 +248,16 @@ function SignupContent() {
               <div className="h-px flex-1 bg-border" />
             </div>
             <form className="space-y-4" onSubmit={handleSignup}>
+              {/* Anti-bot honeypot — hidden from real users */}
+              <div style={{ display: 'none' }} aria-hidden="true">
+                <input
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                  name="website"
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="name">Full name</Label>
                 <Input id="name" name="name" placeholder="Jane Doe" required />

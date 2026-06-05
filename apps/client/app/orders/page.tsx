@@ -8,6 +8,7 @@ import { Button } from '@/app/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
 import { StatusBadge } from '@/app/components/StatusBadge';
 import { AccountShell } from '@/app/components/AccountShell';
+import { useCurrency } from '@/app/hooks/use-currency';
 
 type Order = {
   id: string;
@@ -22,6 +23,7 @@ export default function ClientOrdersPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const { formatAmount } = useCurrency();
 
   useEffect(() => {
     fetch('/api/proxy/v1/orders', { credentials: 'include' })
@@ -69,7 +71,7 @@ export default function ClientOrdersPage() {
                       <TableCell>
                         <StatusBadge status={order.status} />
                       </TableCell>
-                      <TableCell>{order.currency} {order.total.toFixed(2)}</TableCell>
+                      <TableCell>{formatAmount(order.total, order.currency)}</TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="ghost"

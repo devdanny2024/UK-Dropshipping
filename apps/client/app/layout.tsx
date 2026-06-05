@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { AppThemeProvider } from '@/app/components/theme-provider';
 import { ClientHeader } from '@/app/components/ClientHeader';
+import { CartDrawer } from '@/app/components/cart/CartDrawer';
 import { Toaster } from '@/app/components/ui/sonner';
 import { Package, Instagram, Twitter, Facebook } from 'lucide-react';
 
@@ -57,8 +58,11 @@ function SiteFooter() {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-muted-foreground">Support</h4>
+            <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-muted-foreground">Help</h4>
             <ul className="space-y-2 text-sm">
+              {[['FAQ', '/faq'], ['How to Place an Order', '/how-to-order'], ['Blog', '/blog'], ['Product Manual', '/manual']].map(([label, href]) => (
+                <li key={href}><Link href={href} className="text-muted-foreground hover:text-foreground transition-colors">{label}</Link></li>
+              ))}
               <li><a href="mailto:support@uk2meonline.com" className="text-muted-foreground hover:text-foreground transition-colors">support@uk2meonline.com</a></li>
               <li><span className="text-muted-foreground">Mon–Fri 9am–6pm WAT</span></li>
               <li className="pt-2">
@@ -89,6 +93,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <AppThemeProvider>
           <ClientHeader />
+          <CartDrawer />
           <main>{children}</main>
           <SiteFooter />
           <Toaster />

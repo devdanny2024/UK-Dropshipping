@@ -11,6 +11,7 @@ import { OrderStatusTimeline } from '@/app/components/OrderStatusTimeline';
 import { OrderInvoice } from '@/app/components/OrderInvoice';
 import { OrderComplaints } from '@/app/components/OrderComplaints';
 import { WeightPriceRequest } from '@/app/components/WeightPriceRequest';
+import { useCurrency } from '@/app/hooks/use-currency';
 
 type OrderEvent = { id: string; type: string; message: string; createdAt: string };
 type Shipment = { id: string; carrier: string; trackingNumber: string; status: string };
@@ -73,6 +74,7 @@ export default function ClientTrackingPage() {
   }
 
   const firstItem = order.items[0];
+  const { formatAmount } = useCurrency();
 
   return (
     <AccountShell title="Orders">
@@ -96,7 +98,7 @@ export default function ClientTrackingPage() {
             <div className="grid gap-4 md:grid-cols-3">
               <div>
                 <div className="text-sm text-muted-foreground">Total Paid</div>
-                <div className="font-medium">{order.currency} {order.total.toFixed(2)}</div>
+                <div className="font-medium">{formatAmount(order.total, order.currency)}</div>
               </div>
               {firstItem && (
                 <div>

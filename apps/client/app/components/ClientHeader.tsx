@@ -68,8 +68,8 @@ export function ClientHeader() {
   const navItems = [
     {
       href: '/dashboard',
-      label: 'Dashboard',
-      icon: <Package className="h-4 w-4" />,
+      label: 'My Account',
+      icon: <User className="h-4 w-4" />,
       active: pathname === '/dashboard',
       show: isAuthed,
     },

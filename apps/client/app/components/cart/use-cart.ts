@@ -22,6 +22,8 @@ export type CartItem = {
   productCode?: string;
   categoryName?: string;
   region?: Region;
+  size?: string;
+  color?: string;
 };
 
 type CartState = {
@@ -30,19 +32,24 @@ type CartState = {
   region: Region;
   /** Currency of the active region (derived). */
   currency: 'GBP' | 'USD';
+  isOpen: boolean;
+  setOpen: (open: boolean) => void;
   setRegion: (region: Region) => void;
   /** Returns true if adding the item is allowed; false if it would mix regions. */
   canAddItem: (item: CartItem) => boolean;
   addItem: (item: CartItem) => void;
-  removeItem: (slugOrId: string) => void;
-  updateQuantity: (slugOrId: string, quantity: number) => void;
+  removeItem: (key: string) => void;
+  updateQuantity: (key: string, quantity: number) => void;
   clear: () => void;
   count: () => number;
   subtotal: () => number;
 };
 
-function matchId(item: CartItem, slugOrId: string) {
-  return item.productId === slugOrId || item.slug === slugOrId || item.externalUrl === slugOrId;
+export function itemKey(item: CartItem): string {
+  const base = item.productId ?? item.slug ?? item.externalUrl ?? item.name;
+  const size = item.size ?? '';
+  const color = item.color ?? '';
+  return `${base}__${size}__${color}`;
 }
 
 export const useCart = create<CartState>()(
@@ -51,6 +58,8 @@ export const useCart = create<CartState>()(
       items: [],
       region: 'UK',
       currency: 'GBP',
+      isOpen: false,
+      setOpen: (open) => set({ isOpen: open }),
       setRegion: (region) =>
         set((state) => {
           if (region === state.region) return state;
@@ -72,15 +81,15 @@ export const useCart = create<CartState>()(
           }
           const normalised: CartItem = { ...item, region: itemRegion };
           const targetRegion = state.items.length === 0 ? itemRegion : state.region;
-          const existing = state.items.find((existingItem) =>
-            matchId(existingItem, item.productId ?? item.slug ?? item.externalUrl ?? '')
-          );
+          const key = itemKey(normalised);
+          const existing = state.items.find((existingItem) => itemKey(existingItem) === key);
           if (existing) {
             return {
               region: targetRegion,
               currency: REGION_CURRENCY[targetRegion],
+              isOpen: true,
               items: state.items.map((existingItem) =>
-                matchId(existingItem, item.productId ?? item.slug ?? item.externalUrl ?? '')
+                itemKey(existingItem) === key
                   ? { ...existingItem, quantity: existingItem.quantity + item.quantity }
                   : existingItem
               ),
@@ -89,23 +98,27 @@ export const useCart = create<CartState>()(
           return {
             region: targetRegion,
             currency: REGION_CURRENCY[targetRegion],
+            isOpen: true,
             items: [...state.items, normalised],
           };
         }),
-      removeItem: (slugOrId) =>
+      removeItem: (key) =>
         set((state) => ({
-          items: state.items.filter((item) => !matchId(item, slugOrId)),
+          items: state.items.filter((item) => itemKey(item) !== key),
         })),
-      updateQuantity: (slugOrId, quantity) =>
+      updateQuantity: (key, quantity) =>
         set((state) => ({
           items: state.items.map((item) =>
-            matchId(item, slugOrId) ? { ...item, quantity: Math.max(1, quantity) } : item
+            itemKey(item) === key ? { ...item, quantity: Math.max(1, quantity) } : item
           ),
         })),
       clear: () => set({ items: [] }),
       count: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
       subtotal: () => get().items.reduce((sum, item) => sum + (item.priceGBP ?? 0) * item.quantity, 0),
     }),
-    { name: 'uk2me-cart' }
+    {
+      name: 'uk2me-cart',
+      partialize: (state) => ({ items: state.items, region: state.region, currency: state.currency })
+    }
   )
 );

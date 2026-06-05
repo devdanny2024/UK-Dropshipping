@@ -7,10 +7,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/ca
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { Separator } from '@/app/components/ui/separator';
+import { useCurrency } from '@/app/hooks/use-currency';
 
 function SimulatedSuccess({ orderId }: { orderId: string }) {
   const router = useRouter();
   const fakeOrderRef = `UK2ME-${Date.now().toString(36).toUpperCase()}`;
+
+  function continueShopping() {
+    try {
+      const raw = localStorage.getItem('uk2me-active-quote') ?? localStorage.getItem('uk2me-checkout-intent');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const items: { externalUrl?: string }[] = parsed?.items ?? parsed?.cart ?? [];
+        const url = items[0]?.externalUrl;
+        if (url) { router.push(`/preview?url=${encodeURIComponent(url)}`); return; }
+      }
+    } catch { /* fall through */ }
+    router.push('/shop');
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center py-12">
@@ -45,7 +59,7 @@ function SimulatedSuccess({ orderId }: { orderId: string }) {
               <Button className="w-full gap-2" style={{ background: 'var(--brand-violet)' }} onClick={() => router.push('/orders')}>
                 <Package className="h-4 w-4" /> Track My Order
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => router.push('/shop')}>
+              <Button variant="outline" className="w-full" onClick={continueShopping}>
                 Continue Shopping
               </Button>
             </div>
@@ -65,9 +79,9 @@ function ClientPaymentContent() {
   const [orderId, setOrderId] = useState('');
   const [loading, setLoading] = useState<'paystack' | 'stripe' | 'simulate' | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [gbpTotal, setGbpTotal] = useState<string | null>(null);
-  const [ngnAmount, setNgnAmount] = useState<number | null>(null);
+  const [rawGbpTotal, setRawGbpTotal] = useState<number | null>(null);
   const [success, setSuccess] = useState(false);
+  const { formatPrice, rates } = useCurrency();
 
   useEffect(() => {
     const id = params.get('orderId') ?? '';
@@ -77,18 +91,14 @@ function ClientPaymentContent() {
     try {
       const parsed = JSON.parse(raw);
       const total = parsed?.total ?? parsed?.subtotal;
-      if (typeof total === 'number') {
-        setGbpTotal(`£${total.toFixed(2)}`);
-        fetch('/api/proxy/v1/fx?base=GBP&symbols=NGN')
-          .then((r) => r.json())
-          .then((payload) => {
-            const rate = payload?.data?.rates?.NGN;
-            if (typeof rate === 'number') setNgnAmount(Number((total * rate).toFixed(2)));
-          })
-          .catch(() => undefined);
-      }
+      if (typeof total === 'number') setRawGbpTotal(total);
     } catch { /* noop */ }
   }, [params]);
+
+  const gbpTotal = rawGbpTotal != null ? formatPrice(rawGbpTotal) : null;
+  const ngnAmount = rawGbpTotal != null && rates.NGN
+    ? Number((rawGbpTotal * rates.NGN).toFixed(2))
+    : null;
 
   const startPayment = async (provider: 'paystack' | 'stripe') => {
     if (!orderId) { setError('No order ID found. Please start from the product page.'); return; }
@@ -178,7 +188,7 @@ function ClientPaymentContent() {
                 <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Order Total</div>
                 {gbpTotal && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground text-sm">GBP amount</span>
+                    <span className="text-muted-foreground text-sm">Amount</span>
                     <span className="font-bold text-lg">{gbpTotal}</span>
                   </div>
                 )}
