@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { FileText, Send, Save, ExternalLink, RefreshCw } from 'lucide-react';
+import { FileText, Send, Save, ExternalLink, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
@@ -123,6 +123,16 @@ export function InvoicePanel({ orderId, onStatusChange }: { orderId: string; onS
     return Array.from(groups.entries());
   }, [lineItems]);
 
+  // Warn the admin about zero/missing fee lines before sending a draft.
+  const warnings = useMemo(() => {
+    const list: string[] = [];
+    if (num(fees.nigeriaPostage) === 0) list.push('Nigeria postage is 0.');
+    if (num(fees.storePostage) === 0) list.push('Store postage is 0 — no store→warehouse fee.');
+    if (num(fees.internationalTransferFee) === 0) list.push('International transfer fee is 0.');
+    if (invoice?.region === 'US' && num(fees.serviceCharge) === 0) list.push('Service charge is 0.');
+    return list;
+  }, [fees, invoice?.region]);
+
   const handleBuild = async () => {
     setBuilding(true);
     try {
@@ -193,6 +203,12 @@ export function InvoicePanel({ orderId, onStatusChange }: { orderId: string; onS
   };
 
   const handleSend = async () => {
+    if (warnings.length > 0) {
+      const proceed = window.confirm(
+        `This invoice has zeroed fee lines:\n\n${warnings.join('\n')}\n\nSend it to the customer anyway?`,
+      );
+      if (!proceed) return;
+    }
     setSending(true);
     try {
       const res = await fetch(`/api/proxy/v1/admin/orders/${orderId}/invoice/send`, {
@@ -340,6 +356,20 @@ export function InvoicePanel({ orderId, onStatusChange }: { orderId: string; onS
           <span className="text-sm text-muted-foreground">Total</span>
           <span className="text-2xl font-bold">{currency} {liveTotal.toFixed(2)}</span>
         </div>
+
+        {!isSent && warnings.length > 0 && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-3 text-sm text-amber-800 dark:text-amber-300">
+            <div className="flex items-center gap-2 font-medium">
+              <AlertTriangle className="h-4 w-4" />
+              Check fee lines before sending
+            </div>
+            <ul className="mt-2 list-disc pl-6 space-y-0.5">
+              {warnings.map((w) => (
+                <li key={w}>{w}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {!isSent && (
           <div className="flex flex-wrap gap-3">

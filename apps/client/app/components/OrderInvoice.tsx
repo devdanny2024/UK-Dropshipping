@@ -11,20 +11,21 @@ import { StatusBadge } from '@/app/components/StatusBadge';
 type LineItem = {
   id?: string;
   storeName?: string;
-  description?: string;
-  name?: string;
-  quantity?: number;
-  amount?: number;
+  productTitle?: string;
+  productUrl?: string;
+  qty?: number;
+  unitPrice?: number;
+  lineTotal?: number;
 };
 
 type InvoiceTotals = {
   itemsSubtotal?: number;
   storePostage?: number;
   salesTax?: number;
-  transferFee?: number;
+  internationalTransferFee?: number;
   serviceCharge?: number;
   nigeriaPostage?: number;
-  domestic?: number;
+  domesticPostage?: number;
   total?: number;
 };
 
@@ -38,10 +39,10 @@ const TOTAL_ROWS: Array<{ key: keyof InvoiceTotals; label: string }> = [
   { key: 'itemsSubtotal', label: 'Items subtotal' },
   { key: 'storePostage', label: 'Store postage' },
   { key: 'salesTax', label: 'Sales tax' },
-  { key: 'transferFee', label: 'Transfer fee' },
+  { key: 'internationalTransferFee', label: 'Transfer fee' },
   { key: 'serviceCharge', label: 'Service charge' },
   { key: 'nigeriaPostage', label: 'Nigeria postage' },
-  { key: 'domestic', label: 'Domestic delivery' },
+  { key: 'domesticPostage', label: 'Domestic delivery' },
 ];
 
 export function OrderInvoice({ orderId, currency }: { orderId: string; currency?: string }) {
@@ -100,10 +101,10 @@ export function OrderInvoice({ orderId, currency }: { orderId: string; currency?
               {lines.map((li, i) => (
                 <div key={li.id ?? i} className="flex justify-between text-sm">
                   <span className="text-muted-foreground">
-                    {li.description ?? li.name ?? 'Item'}
-                    {li.quantity ? ` × ${li.quantity}` : ''}
+                    {li.productTitle ?? 'Item'}
+                    {li.qty ? ` × ${li.qty}` : ''}
                   </span>
-                  <span>{fmt(li.amount) ?? '—'}</span>
+                  <span>{fmt(li.lineTotal) ?? '—'}</span>
                 </div>
               ))}
             </div>

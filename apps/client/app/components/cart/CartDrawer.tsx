@@ -2,16 +2,17 @@
 
 import Link from 'next/link';
 import { ShoppingBag, Trash2, X } from 'lucide-react';
-import { useCart, itemKey } from '@/app/components/cart/use-cart';
-import { useCurrency } from '@/app/hooks/use-currency';
+import { useCart, itemKey, REGION_SYMBOL } from '@/app/components/cart/use-cart';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { Separator } from '@/app/components/ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/app/components/ui/sheet';
 
 export function CartDrawer() {
-  const { items, isOpen, setOpen, removeItem, subtotal } = useCart();
-  const { formatPrice } = useCurrency();
+  const { items, isOpen, setOpen, removeItem, subtotal, region } = useCart();
+  const symbol = REGION_SYMBOL[region];
+  const formatPrice = (value: number | null | undefined) =>
+    `${symbol}${(value ?? 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <Sheet open={isOpen} onOpenChange={setOpen}>

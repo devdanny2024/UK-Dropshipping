@@ -198,12 +198,14 @@ export async function setServiceChargeUs(field: 'min' | 'threshold', value: numb
   const key = field === 'min' ? 'service_charge_us_min' : 'service_charge_us_threshold';
   await prisma.appSetting.upsert({ where: { key }, update: { value: String(value) }, create: { key, value: String(value) } });
 }
-/** Region-specific service charge: US applies a flat minimum when order value is below the threshold; UK is always 0. */
+/** Region-specific service charge: US applies a flat minimum unless a positive threshold is set and the order value meets it; UK is always 0. */
 export async function computeServiceCharge(region: 'UK' | 'US', orderValue: number): Promise<number> {
   if (region !== 'US') return 0;
   const { min, threshold } = await getServiceChargeUsConfig();
   if (min <= 0) return 0;
-  return orderValue < threshold ? min : 0;
+  // threshold <= 0 means "always apply the min"; a positive threshold caps it to orders below that value.
+  if (threshold > 0 && orderValue >= threshold) return 0;
+  return min;
 }
 
 // --- International transfer fee (M2) ---

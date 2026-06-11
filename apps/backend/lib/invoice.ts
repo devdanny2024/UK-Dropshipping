@@ -33,6 +33,8 @@ export type InvoiceDraft = {
   nigeriaPostage: number;
   domesticPostage: number;
   total: number;
+  /** Non-fatal flags warning the admin that one or more fee lines came out zero/missing. */
+  warnings: string[];
 };
 
 /**
@@ -96,6 +98,7 @@ export async function buildInvoiceDraft(orderId: string): Promise<InvoiceDraft> 
   const distinctStores = Array.from(new Set(lineItems.map((li) => li.storeName)));
   const storeFees = await Promise.all(distinctStores.map((s) => getStoreToWarehouseFee(s)));
   const storePostage = round2(storeFees.reduce((sum, f) => sum + (f?.fee ?? 0), 0));
+  const storesMissingFee = distinctStores.filter((_, i) => !storeFees[i] || (storeFees[i]?.fee ?? 0) <= 0);
 
   // US sales tax only.
   let salesTax = 0;
@@ -125,6 +128,23 @@ export async function buildInvoiceDraft(orderId: string): Promise<InvoiceDraft> 
       domesticPostage,
   );
 
+  // Flag zero/missing fee lines so the admin can correct them before sending.
+  const warnings: string[] = [];
+  if (nigeriaPostage === 0) {
+    warnings.push('Nigeria postage is 0 — set a per-item delivery price.');
+  }
+  if (storesMissingFee.length > 0) {
+    warnings.push(
+      `No store→warehouse fee configured for: ${storesMissingFee.join(', ')}.`,
+    );
+  }
+  if (serviceCharge === 0 && region === 'US') {
+    warnings.push('Service charge is 0 — check the US service-charge config.');
+  }
+  if (internationalTransferFee === 0) {
+    warnings.push('International transfer fee is 0 — check settings.');
+  }
+
   return {
     region,
     currency,
@@ -137,5 +157,6 @@ export async function buildInvoiceDraft(orderId: string): Promise<InvoiceDraft> 
     nigeriaPostage,
     domesticPostage: round2(domesticPostage),
     total,
+    warnings,
   };
 }

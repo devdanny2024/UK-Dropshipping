@@ -35,6 +35,13 @@ export async function POST(request: NextRequest) {
   const region = data.region;
   const currency = region === 'US' ? 'USD' : 'GBP';
 
+  // Defensive guard: reject mixed baskets. If items carry a region, every one
+  // must match the top-level region the order currency is derived from. Items
+  // without a region field fall back to the top-level region as source of truth.
+  if (data.items.some((item) => item.region && item.region !== region)) {
+    return fail('REGION_MISMATCH', 'All items must belong to the same region', 400);
+  }
+
   const itemsTotal = data.items.reduce((sum, item) => sum + item.priceGBP * item.quantity, 0);
   const total = itemsTotal + doorFee;
 
@@ -80,8 +87,8 @@ export async function POST(request: NextRequest) {
         create: snapshots.map((snap, i) => ({
           productSnapshotId: snap.id,
           qty: data.items[i].quantity,
-          size: 'N/A',
-          color: 'N/A',
+          size: data.items[i].size ?? 'N/A',
+          color: data.items[i].color ?? 'N/A',
           unitPrice: data.items[i].priceGBP,
           total: data.items[i].priceGBP * data.items[i].quantity,
         }))

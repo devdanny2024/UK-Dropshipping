@@ -3,6 +3,8 @@ import { ok, fail } from '../../../../../lib/response';
 import { prisma } from '../../../../../lib/prisma';
 import { createOrderEvent } from '../../../../../lib/events';
 import { verifyFlutterwaveWebhook, verifyFlutterwaveTransaction } from '../../../../../lib/flutterwave';
+import { sendMail } from '../../../../../lib/mailer';
+import { paymentConfirmedEmail } from '../../../../../lib/emails';
 
 export async function POST(request: NextRequest) {
   const signature = request.headers.get('verif-hash');
@@ -44,13 +46,19 @@ export async function POST(request: NextRequest) {
   });
 
   if (orderId) {
-    await prisma.order.update({
+    const order = await prisma.order.update({
       where: { id: orderId },
       data: {
         status: status === 'CAPTURED' ? 'PROCESSING' : 'PLACED'
-      }
+      },
+      include: { user: { select: { email: true, name: true } } }
     });
     await createOrderEvent(orderId, 'PAYMENT', `Payment ${payment.paymentRef} ${status.toLowerCase()}`);
+
+    if (status === 'CAPTURED' && order.user?.email) {
+      const mail = paymentConfirmedEmail(order.user.name ?? '', orderId, verified.amount, verified.currency, 'flutterwave');
+      await sendMail({ to: order.user.email, ...mail });
+    }
   }
 
   return ok({ id: payment.id, status: payment.status, paymentRef: payment.paymentRef });

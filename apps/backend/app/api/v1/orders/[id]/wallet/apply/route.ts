@@ -5,7 +5,7 @@ import { prisma } from '../../../../../../../lib/prisma';
 import { createOrderEvent } from '../../../../../../../lib/events';
 import { sendMail } from '../../../../../../../lib/mailer';
 import { paymentConfirmedEmail } from '../../../../../../../lib/emails';
-import { getBalances, getPaidAmount, applyWalletToOrder } from '../../../../../../../lib/wallet';
+import { getBalances, getPaidAmount, applyWalletToOrder, WalletApplyConflict } from '../../../../../../../lib/wallet';
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -35,7 +35,7 @@ export async function POST(
   }
 
   const currency = order.currency;
-  const paid = await getPaidAmount(order.id);
+  const paid = await getPaidAmount(order.id, currency);
   const outstanding = round2(Math.max(0, order.total - paid));
   if (outstanding <= 0) {
     return ok({ applied: 0, outstanding: 0, orderPaid: true, currency });
@@ -47,12 +47,20 @@ export async function POST(
     return fail('NO_CREDIT', `No ${currency} wallet credit available`, 400);
   }
 
-  const applied = await applyWalletToOrder({
-    userId: session.userId,
-    orderId: order.id,
-    currency,
-    amount: outstanding
-  });
+  let applied: number;
+  try {
+    applied = await applyWalletToOrder({
+      userId: session.userId,
+      orderId: order.id,
+      currency,
+      amount: outstanding
+    });
+  } catch (err) {
+    if (err instanceof WalletApplyConflict) {
+      return fail('WALLET_APPLY_IN_PROGRESS', 'Wallet credit is already being applied to this order', 409);
+    }
+    throw err;
+  }
   if (applied <= 0) {
     return fail('NO_CREDIT', 'Could not apply wallet credit', 400);
   }

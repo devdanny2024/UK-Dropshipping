@@ -4,6 +4,7 @@ import { Check, Circle, AlertTriangle, XCircle } from 'lucide-react';
 
 const STEPS = [
   { key: 'PLACED', label: 'Placed' },
+  { key: 'PENDING_INVOICE', label: 'Pending Invoice' },
   { key: 'INVOICED', label: 'Invoiced' },
   { key: 'PROCESSING', label: 'Processing' },
   { key: 'SHIPPED', label: 'Shipped' },
@@ -13,15 +14,16 @@ const STEPS = [
 // Map backend statuses that aren't an exact step name onto a step index.
 const STATUS_TO_STEP: Record<string, number> = {
   PLACED: 0,
-  INVOICED: 1,
-  INVOICE_SENT: 1,
-  AWAITING_PURCHASE: 2,
-  PROCESSING: 2,
-  PURCHASED: 2,
-  SHIPPED: 3,
-  IN_TRANSIT: 3,
-  OUT_FOR_DELIVERY: 3,
-  DELIVERED: 4,
+  PENDING_INVOICE: 1,
+  INVOICED: 2,
+  INVOICE_SENT: 2,
+  AWAITING_PURCHASE: 3,
+  PROCESSING: 3,
+  PURCHASED: 3,
+  SHIPPED: 4,
+  IN_TRANSIT: 4,
+  OUT_FOR_DELIVERY: 4,
+  DELIVERED: 5,
 };
 
 export function OrderStatusTimeline({ status }: { status: string }) {

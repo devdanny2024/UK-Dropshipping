@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
     data: {
       productSnapshotId: data.productSnapshotId,
       addressId: data.addressId,
+      userId: session.userId,
       size: data.size,
       color: data.color,
       qty: data.qty,

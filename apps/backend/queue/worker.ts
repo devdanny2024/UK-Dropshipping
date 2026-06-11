@@ -1,6 +1,9 @@
 import { Worker } from 'bullmq';
 import { prisma } from '../lib/prisma';
 import { resolveProductFromUrl } from '../lib/adapters';
+import { createOrderEvent } from '../lib/events';
+import { sendMail } from '../lib/mailer';
+import { orderStatusEmail } from '../lib/emails';
 
 function getRedisConnection() {
   const url = new URL(process.env.REDIS_URL ?? 'redis://localhost:6379');
@@ -57,10 +60,18 @@ new Worker(
         data: { status: 'RUNNING' }
       });
 
-      await prisma.order.update({
+      const order = await prisma.order.update({
         where: { id: orderId },
-        data: { status: 'AWAITING_PURCHASE' }
+        data: { status: 'AWAITING_PURCHASE' },
+        include: { user: { select: { email: true, name: true } } }
       });
+
+      // Record the status change + notify the customer (best-effort, no-throw).
+      await createOrderEvent(orderId, 'STATUS', 'Sourcing your item from the retailer').catch(() => undefined);
+      if (order.user?.email) {
+        const mail = orderStatusEmail(order.user.name ?? '', orderId, 'AWAITING_PURCHASE');
+        if (mail) await sendMail({ to: order.user.email, ...mail });
+      }
 
       // Placeholder: real purchase automation goes here.
       // For now, mark queued so admin can handle manually.

@@ -17,9 +17,7 @@ export default function CartPage() {
   const formatPrice = (value: number | null | undefined) =>
     `${symbol}${(value ?? 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const [notes, setNotes] = useState('');
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/proxy';
   const total = subtotal();
 
   const switchRegion = (next: Region) => {
@@ -32,27 +30,6 @@ export default function CartPage() {
     const intent = { region, currency, subtotal: total, items, notes, createdAt: new Date().toISOString() };
     localStorage.setItem('uk2me-checkout-intent', JSON.stringify(intent));
     router.push('/checkout');
-  };
-
-  const submitQuote = async () => {
-    if (items.length === 0) return;
-    setLoading(true);
-    try {
-      const response = await fetch(`${apiBase}/orders/quote`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ items, notes })
-      });
-      const payload = await response.json();
-      if (!response.ok || !payload.ok) {
-        alert(payload?.error?.message ?? 'Failed to submit quote request');
-        return;
-      }
-      router.push('/quote');
-    } finally {
-      setLoading(false);
-    }
   };
 
   if (items.length === 0) {
@@ -229,14 +206,6 @@ export default function CartPage() {
                   onClick={startCheckout}
                 >
                   Proceed to Checkout <ArrowRight className="h-4 w-4" />
-                </Button>
-                <Button
-                  className="w-full gap-2"
-                  variant="outline"
-                  onClick={submitQuote}
-                  disabled={loading}
-                >
-                  {loading ? 'Submitting…' : 'Request a Quote'}
                 </Button>
                 <Button variant="ghost" className="w-full text-muted-foreground text-xs" onClick={clear}>
                   Clear cart

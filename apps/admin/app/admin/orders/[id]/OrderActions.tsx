@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Truck, Wallet } from 'lucide-react';
+import { Truck, Wallet, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
@@ -163,6 +163,108 @@ export function WalletCreditAction({ orderId, currency }: { orderId: string; cur
         <Button onClick={handleSubmit} disabled={!canSubmit || submitting} className="gap-2">
           <Wallet className="h-4 w-4" />
           {submitting ? 'Crediting...' : 'Issue credit'}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Allowed current -> next transitions (mirrors the backend /status validation map).
+const STATUS_TRANSITIONS: Record<string, string[]> = {
+  PLACED: ['PENDING_INVOICE', 'INVOICED', 'CANCELLED'],
+  PENDING_INVOICE: ['INVOICED', 'CANCELLED'],
+  INVOICED: ['PROCESSING', 'CANCELLED'],
+  PROCESSING: ['AWAITING_PURCHASE', 'SHIPPED', 'CANCELLED'],
+  AWAITING_PURCHASE: ['SHIPPED', 'CANCELLED'],
+  SHIPPED: ['DELIVERED'],
+  DELIVERED: [],
+  CANCELLED: [],
+};
+
+export function StatusChangeAction({
+  orderId,
+  status,
+  onStatusChange,
+}: {
+  orderId: string;
+  status: string;
+  onStatusChange?: (status: string) => void;
+}) {
+  const nextStatuses = STATUS_TRANSITIONS[status] ?? [];
+  const [next, setNext] = useState('');
+  const [note, setNote] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const canSubmit = next.length > 0 && nextStatuses.includes(next);
+
+  const handleSubmit = async () => {
+    if (!canSubmit) return;
+    if (!window.confirm(`Change order status to ${next}?`)) return;
+    setSubmitting(true);
+    try {
+      const body: Record<string, unknown> = { status: next };
+      if (note.trim()) body.note = note.trim();
+      const res = await fetch(`/api/proxy/v1/admin/orders/${orderId}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body)
+      });
+      const payload = await res.json();
+      if (payload?.ok) {
+        onStatusChange?.(payload.data?.status ?? next);
+        toast.success(`Status updated to ${next}`);
+        setNext('');
+        setNote('');
+      } else {
+        toast.error(payload?.error?.message ?? 'Could not update status');
+      }
+    } catch {
+      toast.error('Failed to update status');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <RefreshCw className="h-5 w-5" />
+          Change status
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="next-status">New status</Label>
+          {nextStatuses.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No further status changes are possible for this order.</p>
+          ) : (
+            <select
+              id="next-status"
+              value={next}
+              onChange={(e) => setNext(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="">Select a status…</option>
+              {nextStatuses.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="status-note">Note (optional)</Label>
+          <Textarea
+            id="status-note"
+            placeholder="Add a note for the customer"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+        </div>
+        <Button onClick={handleSubmit} disabled={!canSubmit || submitting} className="gap-2">
+          <RefreshCw className="h-4 w-4" />
+          {submitting ? 'Updating...' : 'Update status'}
         </Button>
       </CardContent>
     </Card>

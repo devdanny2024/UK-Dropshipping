@@ -19,10 +19,22 @@ export async function POST(request: NextRequest) {
 
   const quote = await prisma.quote.findUnique({
     where: { id: data.quoteId },
-    include: { productSnapshot: true }
+    include: { productSnapshot: true, address: true }
   });
 
   if (!quote) {
+    return fail('NOT_FOUND', 'Quote not found', 404);
+  }
+
+  // IDOR guard — a quote may only be ordered by the user who created it.
+  // Return 404 (not 403) so quote ids aren't enumerable across accounts.
+  if (quote.userId && quote.userId !== session.userId) {
+    return fail('NOT_FOUND', 'Quote not found', 404);
+  }
+
+  // Defense in depth — the snapshotted shipping address must belong to the
+  // session user (an address with no owner is a shared/placeholder address).
+  if (quote.address?.userId && quote.address.userId !== session.userId) {
     return fail('NOT_FOUND', 'Quote not found', 404);
   }
 

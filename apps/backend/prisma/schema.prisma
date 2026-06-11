@@ -119,6 +119,7 @@ model User {
   // M3 R13 — virtual wallet
   wallet    Wallet?
   complaints Complaint[]
+  quotes    Quote[]
 
   @@index([role])
 }
@@ -169,9 +170,11 @@ model Quote {
   addressId             String
   itemWeightGrams       Int?
   chargeableWeightGrams Int?
+  userId                String?
   createdAt             DateTime @default(now())
   productSnapshot       ProductSnapshot @relation(fields: [productSnapshotId], references: [id])
   address               Address         @relation(fields: [addressId], references: [id])
+  user                  User?           @relation(fields: [userId], references: [id])
 }
 
 model Order {

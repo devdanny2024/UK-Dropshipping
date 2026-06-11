@@ -3,8 +3,11 @@ import { ok, fail } from '../../../../../../lib/response';
 import { prisma } from '../../../../../../lib/prisma';
 import { createOrderEvent } from '../../../../../../lib/events';
 import { verifyPaystackWebhook, verifyPaystackTransaction } from '../../../../../../lib/paystack';
+import { getPaidAmount } from '../../../../../../lib/wallet';
 import { sendMail } from '../../../../../../lib/mailer';
 import { paymentConfirmedEmail } from '../../../../../../lib/emails';
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
@@ -56,16 +59,40 @@ export async function POST(request: NextRequest) {
   });
 
   if (orderId) {
-    const order = await prisma.order.update({
+    const order = await prisma.order.findUnique({
       where: { id: orderId },
-      data: { status: status === 'CAPTURED' ? 'PROCESSING' : 'PLACED' },
-      include: { user: { select: { email: true, name: true } } }
+      include: { user: { select: { email: true, name: true } }, invoice: true }
     });
-    await createOrderEvent(orderId, 'PAYMENT', `Paystack payment ${reference} ${status.toLowerCase()}`);
 
-    if (status === 'CAPTURED' && order.user?.email) {
-      const mail = paymentConfirmedEmail(order.user.name ?? '', orderId, amountNGN, verified.currency, 'paystack');
-      await sendMail({ to: order.user.email, ...mail });
+    if (order) {
+      // Currency-aware: only payments in the order currency count toward settlement.
+      const settled = status === 'CAPTURED' ? round2(await getPaidAmount(orderId, order.currency)) : 0;
+      const fullyPaid = status === 'CAPTURED' && settled >= round2(order.total);
+
+      if (fullyPaid) {
+        await prisma.order.update({ where: { id: orderId }, data: { status: 'PROCESSING' } });
+        if (order.invoice && order.invoice.status !== 'PAID') {
+          await prisma.invoice.update({
+            where: { id: order.invoice.id },
+            data: { status: 'PAID', paidAt: new Date() }
+          });
+        }
+        await createOrderEvent(orderId, 'PAYMENT', `Paystack payment ${reference} captured — order fully paid`);
+        if (order.user?.email) {
+          const mail = paymentConfirmedEmail(order.user.name ?? '', orderId, amountNGN, verified.currency, 'paystack');
+          await sendMail({ to: order.user.email, ...mail });
+        }
+      } else if (status === 'CAPTURED') {
+        // Captured but insufficient (or currency mismatch) — record partial, leave order as-is.
+        const remaining = round2(Math.max(0, order.total - settled));
+        await createOrderEvent(
+          orderId,
+          'PAYMENT',
+          `Paystack payment ${reference} captured (${verified.currency} ${amountNGN.toFixed(2)}) — partial; ${order.currency} ${remaining.toFixed(2)} remaining`
+        );
+      } else {
+        await createOrderEvent(orderId, 'PAYMENT', `Paystack payment ${reference} ${status.toLowerCase()}`);
+      }
     }
   }
 

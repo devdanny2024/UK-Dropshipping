@@ -11,7 +11,7 @@ import { StatusBadge } from '@/app/components/StatusBadge';
 import { Timeline } from '@/app/components/Timeline';
 import { Badge } from '@/app/components/ui/badge';
 import { InvoicePanel } from './InvoicePanel';
-import { DispatchAction, WalletCreditAction } from './OrderActions';
+import { DispatchAction, WalletCreditAction, StatusChangeAction } from './OrderActions';
 
 type OrderDetail = {
   id: string;
@@ -335,6 +335,7 @@ export default function AdminOrderDetailPage() {
         <TabsContent value="manage" className="space-y-6">
           <InvoicePanel orderId={order.id} onStatusChange={updateStatus} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <StatusChangeAction orderId={order.id} status={order.status} onStatusChange={updateStatus} />
             <DispatchAction orderId={order.id} onStatusChange={updateStatus} />
             <WalletCreditAction orderId={order.id} currency={order.currency} />
           </div>

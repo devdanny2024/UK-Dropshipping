@@ -28,7 +28,7 @@ export function OrderComplaints({ orderId }: { orderId: string }) {
     fetch(`/api/proxy/v1/orders/${orderId}/complaints`, { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : null))
       .then((payload) => {
-        const list = payload?.data ?? payload?.complaints ?? [];
+        const list = payload?.data?.complaints ?? [];
         if (Array.isArray(list)) setComplaints(list);
       })
       .catch(() => undefined);

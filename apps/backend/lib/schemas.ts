@@ -131,6 +131,9 @@ export const checkoutSchema = z.object({
     productCode: z.string().optional(),
     categoryName: z.string().optional(),
     weightKg: z.number().nonnegative().optional(),
+    size: z.string().optional(),
+    color: z.string().optional(),
+    region: z.enum(['UK', 'US']).optional(),
   })).min(1),
   address: z.object({
     recipientName: z.string().min(2),

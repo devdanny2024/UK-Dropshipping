@@ -8,6 +8,8 @@ import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { Separator } from '@/app/components/ui/separator';
 import { useCurrency } from '@/app/hooks/use-currency';
+import { DeliveryNote, type DeliveryNoteData } from '@/app/components/DeliveryNote';
+import { REGION_SYMBOL, type Region } from '@/app/components/cart/use-cart';
 
 function SimulatedSuccess({ orderId }: { orderId: string }) {
   const router = useRouter();
@@ -86,7 +88,10 @@ function ClientPaymentContent() {
   const [outstanding, setOutstanding] = useState<number | null>(null);
   const [applyingWallet, setApplyingWallet] = useState(false);
   const [walletNote, setWalletNote] = useState<string | null>(null);
-  const { formatPrice, rates } = useCurrency();
+  const [orderRegion, setOrderRegion] = useState<Region | null>(null);
+  const [orderCurrency, setOrderCurrency] = useState<string | null>(null);
+  const [delivery, setDelivery] = useState<DeliveryNoteData | null>(null);
+  const { rates } = useCurrency();
 
   useEffect(() => {
     const id = params.get('orderId') ?? '';
@@ -119,6 +124,14 @@ function ClientPaymentContent() {
           if (ccy === 'GBP') setRawGbpTotal(order.total);
         }
         setWalletCurrency(ccy);
+        setOrderCurrency(ccy);
+        if (order?.region === 'UK' || order?.region === 'US') setOrderRegion(order.region);
+        setDelivery({
+          despatchDate: order?.despatchDate ?? null,
+          estDeliveryMin: order?.estDeliveryMin ?? null,
+          estDeliveryMax: order?.estDeliveryMax ?? null,
+          deliveryNote: order?.deliveryNote ?? null,
+        });
         const balances = walletPayload?.data?.balances ?? {};
         setWalletBalance(Number(balances[ccy] ?? 0));
       } catch { /* noop */ }
@@ -126,7 +139,14 @@ function ClientPaymentContent() {
   }, [orderId]);
 
   const payable = outstanding != null ? outstanding : rawGbpTotal;
-  const gbpTotal = payable != null ? formatPrice(payable) : null;
+  // Region-locked basket: order.total is already in the order's region currency
+  // (GBP for UK, USD for US). Display it with the region symbol and NO conversion.
+  const regionSymbol = orderRegion
+    ? REGION_SYMBOL[orderRegion]
+    : orderCurrency === 'USD' ? '$' : '£';
+  const gbpTotal = payable != null
+    ? `${regionSymbol}${payable.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : null;
   const ngnAmount = payable != null && rates.NGN
     ? Number((payable * rates.NGN).toFixed(2))
     : null;
@@ -223,6 +243,8 @@ function ClientPaymentContent() {
             <span className="text-amber-700 dark:text-amber-500 ml-1">— Payment gateway not yet configured. Use the simulate button below to test the full checkout flow.</span>
           </div>
         </div>
+
+        {delivery && <DeliveryNote data={delivery} />}
 
         <Card>
           <CardHeader className="pb-2">
