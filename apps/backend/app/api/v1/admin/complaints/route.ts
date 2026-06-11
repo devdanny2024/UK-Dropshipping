@@ -7,7 +7,7 @@ import type { ComplaintStatus, Prisma } from '@prisma/client';
 const VALID_STATUSES: ComplaintStatus[] = ['OPEN', 'UNDER_REVIEW', 'RESOLVED', 'REJECTED'];
 
 export async function GET(request: NextRequest) {
-  const authError = requireAdmin(request);
+  const authError = await requireAdmin(request);
   if (authError) return authError;
 
   const statusParam = request.nextUrl.searchParams.get('status');

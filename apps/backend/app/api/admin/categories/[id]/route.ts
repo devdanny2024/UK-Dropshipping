@@ -7,7 +7,7 @@ import { requireAdmin } from '../../../../../lib/auth';
 import { uniqueCategorySlug } from '../../../../../lib/slug';
 
 export async function PATCH(request: NextRequest, context: { params: { id: string } }) {
-  const authError = requireAdmin(request);
+  const authError = await requireAdmin(request);
   if (authError) return authError;
 
   const { data, error } = await parseBody(request, categorySchema.partial());
@@ -39,7 +39,7 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
 }
 
 export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
-  const authError = requireAdmin(request);
+  const authError = await requireAdmin(request);
   if (authError) return authError;
 
   const existing = await prisma.category.findUnique({ where: { id: context.params.id } });

@@ -12,7 +12,7 @@ const DEFAULT_PAIRS = [
 ];
 
 export async function GET(request: NextRequest) {
-  const auth = requireAdmin(request);
+  const auth = await requireAdmin(request);
   if (auth) return auth;
 
   const [overrides, ...liveResults] = await Promise.all([
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = requireAdmin(request);
+  const auth = await requireAdmin(request);
   if (auth) return auth;
 
   const { data, error } = await parseBody(request, fxOverrideSchema);
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = requireAdmin(request);
+  const auth = await requireAdmin(request);
   if (auth) return auth;
 
   const pair = request.nextUrl.searchParams.get('pair');

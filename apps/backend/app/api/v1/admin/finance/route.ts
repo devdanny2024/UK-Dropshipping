@@ -6,7 +6,7 @@ import { requireAdmin } from '../../../../../lib/auth';
 import { getPlatformFeePercent, setPlatformFeePercent } from '../../../../../lib/settings';
 
 export async function GET(request: NextRequest) {
-  const authError = requireAdmin(request);
+  const authError = await requireAdmin(request);
   if (authError) return authError;
 
   const feePercent = await getPlatformFeePercent();
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const authError = requireAdmin(request);
+  const authError = await requireAdmin(request);
   if (authError) return authError;
 
   const { data, error } = await parseBody(request, platformFeeSchema);

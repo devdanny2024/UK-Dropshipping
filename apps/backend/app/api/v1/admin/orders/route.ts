@@ -4,7 +4,7 @@ import { prisma } from '../../../../../lib/prisma';
 import { requireAdmin } from '../../../../../lib/auth';
 
 export async function GET(request: NextRequest) {
-  const auth = requireAdmin(request);
+  const auth = await requireAdmin(request);
   if (auth) return auth;
 
   const status = request.nextUrl.searchParams.get('status');

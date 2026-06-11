@@ -6,7 +6,7 @@ import { prisma } from '../../../../../lib/prisma';
 import { requireAdmin } from '../../../../../lib/auth';
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
-  const authError = requireAdmin(request);
+  const authError = await requireAdmin(request);
   if (authError) return authError;
 
   const { data, error } = await parseBody(request, adapterUpdateSchema);

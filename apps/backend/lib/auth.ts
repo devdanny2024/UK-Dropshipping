@@ -1,16 +1,75 @@
 import type { NextRequest } from 'next/server';
+import type { Role } from '@prisma/client';
 import crypto from 'node:crypto';
 import { fail } from './response';
 import { prisma } from './prisma';
 
-export function requireAdmin(request: NextRequest) {
-  if (process.env.ADMIN_AUTH_DISABLED === 'true') return null;
-  const cookieName = process.env.ADMIN_SESSION_COOKIE ?? 'admin_session';
-  const cookie = request.cookies.get(cookieName);
-  if (!cookie || cookie.value !== 'active') {
-    return fail('UNAUTHORIZED', 'Admin session required', 401);
+const ADMIN_COOKIE = process.env.ADMIN_SESSION_COOKIE ?? 'admin_session';
+
+// Roles that may access the admin panel at all.
+const ADMIN_ROLES: Role[] = ['STAFF', 'ADMIN', 'SUPER_ADMIN'];
+
+// Ordered privilege ranking for requireRole(min) comparisons.
+const ROLE_RANK: Record<Role, number> = {
+  CUSTOMER: 0,
+  STAFF: 1,
+  ADMIN: 2,
+  SUPER_ADMIN: 3,
+};
+
+export type AdminPrincipal = { userId: string; role: Role; email: string };
+
+/**
+ * Resolve the acting admin from the admin session cookie. Returns null when
+ * there is no valid admin session (no/expired token, or the user is not an
+ * admin-level role). Role is read live from the DB so promotions/demotions take
+ * effect on the next request.
+ */
+export async function getAdminSession(request: NextRequest): Promise<AdminPrincipal | null> {
+  // Local/dev escape hatch — preserves prior ADMIN_AUTH_DISABLED behaviour.
+  if (process.env.ADMIN_AUTH_DISABLED === 'true') {
+    return { userId: 'dev', role: 'SUPER_ADMIN', email: 'dev@local' };
   }
+  const token = request.cookies.get(ADMIN_COOKIE)?.value;
+  // 'active' was the legacy shared-cookie value — no longer a valid session.
+  if (!token || token === 'active') return null;
+  const session = await prisma.session.findUnique({
+    where: { token },
+    include: { user: true },
+  });
+  if (!session || session.expiresAt < new Date()) return null;
+  if (!ADMIN_ROLES.includes(session.user.role)) return null;
+  return { userId: session.user.id, role: session.user.role, email: session.user.email };
+}
+
+export async function requireAdmin(request: NextRequest) {
+  const principal = await getAdminSession(request);
+  if (!principal) return fail('UNAUTHORIZED', 'Admin session required', 401);
   return null;
+}
+
+/**
+ * Gate a route on a minimum role. Returns { error } to short-circuit, or
+ * { principal } with the acting admin when authorised.
+ */
+export async function requireRole(
+  request: NextRequest,
+  min: Role
+): Promise<{ error: ReturnType<typeof fail>; principal?: undefined } | { error?: undefined; principal: AdminPrincipal }> {
+  const principal = await getAdminSession(request);
+  if (!principal) return { error: fail('UNAUTHORIZED', 'Admin session required', 401) };
+  if (ROLE_RANK[principal.role] < ROLE_RANK[min]) {
+    return { error: fail('FORBIDDEN', `Requires ${min} role or higher`, 403) };
+  }
+  return { principal };
+}
+
+export function isAdminRole(role: Role): boolean {
+  return ADMIN_ROLES.includes(role);
+}
+
+export function getAdminCookieName() {
+  return ADMIN_COOKIE;
 }
 
 const CLIENT_COOKIE = process.env.CLIENT_SESSION_COOKIE ?? 'client_session';

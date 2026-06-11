@@ -7,7 +7,7 @@ import { sendMail } from '../../../../../../../../lib/mailer';
 import { invoiceReadyEmail } from '../../../../../../../../lib/emails';
 
 export async function POST(request: NextRequest, context: { params: { id: string } }) {
-  const authError = requireAdmin(request);
+  const authError = await requireAdmin(request);
   if (authError) return authError;
 
   const orderId = context.params.id;

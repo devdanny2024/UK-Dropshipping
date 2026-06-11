@@ -13,9 +13,11 @@ export type WeightItem = {
   color?: string;
 };
 
+// Only an AUTO item still offers the manual button. REQUESTED means a price has
+// already been requested (manually or auto-detected at checkout) and is pending.
 function flaggable(status?: string) {
   const s = (status ?? '').toUpperCase();
-  return s === 'REQUESTED' || s === 'AUTO';
+  return s === 'AUTO';
 }
 
 export function WeightPriceRequest({ orderId, items }: { orderId: string; items: WeightItem[] }) {
@@ -88,7 +90,7 @@ function WeightRow({ orderId, item }: { orderId: string; item: WeightItem }) {
           <span className="flex items-center gap-1 text-sm text-green-600 font-medium shrink-0">
             <CheckCircle2 className="h-4 w-4" /> Ready to pay
           </span>
-        ) : status === 'PENDING' ? (
+        ) : status === 'PENDING' || status === 'REQUESTED' ? (
           <span className="flex items-center gap-1 text-sm text-amber-600 font-medium shrink-0">
             <Clock className="h-4 w-4" /> Price pending
           </span>

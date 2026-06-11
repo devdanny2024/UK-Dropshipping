@@ -8,7 +8,7 @@ import { requireAdmin } from '../../../../lib/auth';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const authError = requireAdmin(request);
+  const authError = await requireAdmin(request);
   if (authError) return authError;
 
   const category = request.nextUrl.searchParams.get('category') ?? undefined;
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const authError = requireAdmin(request);
+  const authError = await requireAdmin(request);
   if (authError) return authError;
 
   const { data, error } = await parseBody(request, weightReferenceSchema);

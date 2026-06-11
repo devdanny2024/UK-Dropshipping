@@ -1,9 +1,9 @@
 import type { NextRequest } from 'next/server';
-import { ok } from '../../../../../../lib/response';
-import { requireAdmin } from '../../../../../../lib/auth';
+import { ok, fail } from '../../../../../../lib/response';
+import { getAdminSession } from '../../../../../../lib/auth';
 
 export async function GET(request: NextRequest) {
-  const denied = requireAdmin(request);
-  if (denied) return denied;
-  return ok({ authenticated: true });
+  const principal = await getAdminSession(request);
+  if (!principal) return fail('UNAUTHORIZED', 'Admin session required', 401);
+  return ok({ authenticated: true, email: principal.email, role: principal.role });
 }

@@ -6,9 +6,11 @@ import { getClientSession } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
 import { createOrderEvent } from '../../../../lib/events';
 import { sendMail } from '../../../../lib/mailer';
-import { orderReceivedEmail, adminOrderPlacedEmail } from '../../../../lib/emails';
+import { orderReceivedEmail, adminOrderPlacedEmail, weightPriceRequestedAdminEmail } from '../../../../lib/emails';
 import { estimateDelivery } from '../../../../lib/delivery-engine';
 import { getDeliveryConfig } from '../../../../lib/settings';
+import { resolveChargeableWeight } from '../../../../lib/weight';
+import { isNoWeight } from '../../../../lib/weight-request';
 import { Prisma } from '@prisma/client';
 
 async function getDeliveryFee(type: 'door' | 'pickup'): Promise<number> {
@@ -119,6 +121,75 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error('Delivery estimate failed for order', order.id, err);
+  }
+
+  // M3 R9 — auto-detect items we cannot price by weight (no client-supplied
+  // weight, no matching category, or a category flagged for manual weight) and
+  // convert them into manual weight-price requests instead of silently
+  // mis-pricing with the 500g fallback. Best-effort: a failure here must never
+  // block an order — such items simply stay AUTO and the customer can still use
+  // the manual "Request Weight Price" button.
+  try {
+    const createdItems = await prisma.orderItem.findMany({ where: { orderId: order.id } });
+    const inputBySnapshot = new Map(snapshots.map((snap, i) => [snap.id, data.items[i]]));
+    const weightRequests: { productUrl: string; category?: string }[] = [];
+
+    for (const item of createdItems) {
+      const input = inputBySnapshot.get(item.productSnapshotId);
+      if (!input) continue;
+
+      // A client-supplied weight means we can price the item automatically.
+      if (typeof input.weightKg === 'number' && input.weightKg > 0) continue;
+
+      let source = 'fallback';
+      let requiresManualWeight = false;
+      if (input.categoryName) {
+        const category = await prisma.category.findFirst({
+          where: { name: { equals: input.categoryName, mode: 'insensitive' } },
+          select: { id: true, requiresManualWeight: true },
+        });
+        if (category) {
+          requiresManualWeight = category.requiresManualWeight;
+          const resolved = await resolveChargeableWeight(null, category.id, input.name);
+          source = resolved.source;
+        }
+      }
+
+      if (!isNoWeight(source, requiresManualWeight)) continue;
+
+      const snap = snapshots.find((s) => s.id === item.productSnapshotId);
+      await prisma.orderItem.update({
+        where: { id: item.id },
+        data: { weightStatus: 'REQUESTED' },
+      });
+      await prisma.weightPriceRequest.create({
+        data: {
+          orderId: order.id,
+          orderItemId: item.id,
+          productUrl: snap?.url ?? '',
+          category: input.categoryName ?? null,
+          status: 'REQUESTED',
+          requestedById: session.userId,
+        },
+      });
+      weightRequests.push({ productUrl: snap?.url ?? '', category: input.categoryName ?? undefined });
+    }
+
+    if (weightRequests.length > 0) {
+      const adminTo =
+        process.env.ADMIN_NOTIFY_EMAIL ?? process.env.SMTP_FROM ?? process.env.SMTP_USER ?? '';
+      if (adminTo) {
+        const mail = weightPriceRequestedAdminEmail(order.id, weightRequests);
+        await sendMail({ to: adminTo, ...mail });
+      }
+      await createOrderEvent(
+        order.id,
+        'WEIGHT_PRICE_REQUESTED',
+        `Auto weight price requested for ${weightRequests.length} item(s)`
+      );
+    }
+  } catch (err) {
+    console.error('Weight-price auto-detection failed for order', order.id, err);
   }
 
   await createOrderEvent(order.id, 'ORDER', `Order created — ${data.deliveryType === 'door' ? 'door delivery' : 'pickup'}`);

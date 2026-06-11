@@ -11,7 +11,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const auth = requireAdmin(request);
+  const auth = await requireAdmin(request);
   if (auth) return auth;
 
   const idempotencyKey = request.headers.get('idempotency-key');

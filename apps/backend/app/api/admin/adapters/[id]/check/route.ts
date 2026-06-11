@@ -5,7 +5,7 @@ import { requireAdmin } from '../../../../../../lib/auth';
 import { checkAdapterDomain } from '../../../../../../lib/adapters-state';
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
-  const authError = requireAdmin(request);
+  const authError = await requireAdmin(request);
   if (authError) return authError;
 
   const adapter = await prisma.adapterState.findUnique({ where: { id: params.id } });

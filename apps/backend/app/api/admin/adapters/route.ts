@@ -5,7 +5,7 @@ import { prisma } from '../../../../lib/prisma';
 import { requireAdmin } from '../../../../lib/auth';
 
 export async function GET(request: NextRequest) {
-  const authError = requireAdmin(request);
+  const authError = await requireAdmin(request);
   if (authError) return authError;
 
   await ensureAdapterStatesSeeded();

@@ -17,7 +17,7 @@ function round2(n: number): number {
 }
 
 export async function GET(request: NextRequest, context: { params: { id: string } }) {
-  const authError = requireAdmin(request);
+  const authError = await requireAdmin(request);
   if (authError) return authError;
 
   const orderId = context.params.id;
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest, context: { params: { id: string 
 }
 
 export async function POST(request: NextRequest, context: { params: { id: string } }) {
-  const authError = requireAdmin(request);
+  const authError = await requireAdmin(request);
   if (authError) return authError;
 
   const orderId = context.params.id;
@@ -113,7 +113,7 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(request: NextRequest, context: { params: { id: string } }) {
-  const authError = requireAdmin(request);
+  const authError = await requireAdmin(request);
   if (authError) return authError;
 
   const orderId = context.params.id;

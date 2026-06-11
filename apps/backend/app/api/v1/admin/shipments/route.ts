@@ -10,7 +10,7 @@ import { sendMail } from '../../../../../lib/mailer';
 import { shipmentDispatchedEmail } from '../../../../../lib/emails';
 
 export async function GET(request: NextRequest) {
-  const auth = requireAdmin(request);
+  const auth = await requireAdmin(request);
   if (auth) return auth;
 
   const shipments = await prisma.shipment.findMany({
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = requireAdmin(request);
+  const auth = await requireAdmin(request);
   if (auth) return auth;
 
   const { data, error } = await parseBody(request, shipmentSchema);

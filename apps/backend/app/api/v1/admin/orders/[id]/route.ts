@@ -7,7 +7,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const auth = requireAdmin(request);
+  const auth = await requireAdmin(request);
   if (auth) return auth;
 
   const order = await prisma.order.findUnique({

@@ -6,7 +6,7 @@ import { prisma } from '../../../../../lib/prisma';
 import { requireAdmin } from '../../../../../lib/auth';
 
 export async function PATCH(request: NextRequest, context: { params: { id: string } }) {
-  const authError = requireAdmin(request);
+  const authError = await requireAdmin(request);
   if (authError) return authError;
 
   const { data, error } = await parseBody(request, weightReferenceSchema.partial());
@@ -31,7 +31,7 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
 }
 
 export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
-  const authError = requireAdmin(request);
+  const authError = await requireAdmin(request);
   if (authError) return authError;
 
   const existing = await prisma.weightReference.findUnique({ where: { id: context.params.id } });

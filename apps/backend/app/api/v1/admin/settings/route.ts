@@ -4,7 +4,7 @@ import { requireAdmin } from '../../../../../lib/auth';
 import { prisma } from '../../../../../lib/prisma';
 
 export async function POST(request: NextRequest) {
-  const denied = requireAdmin(request);
+  const denied = await requireAdmin(request);
   if (denied) return denied;
 
   const body = await request.json().catch(() => null);
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const denied = requireAdmin(request);
+  const denied = await requireAdmin(request);
   if (denied) return denied;
 
   const settings = await prisma.appSetting.findMany({ orderBy: { key: 'asc' } });
