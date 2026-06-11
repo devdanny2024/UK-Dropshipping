@@ -144,6 +144,8 @@ function ClientPaymentContent() {
   const regionSymbol = orderRegion
     ? REGION_SYMBOL[orderRegion]
     : orderCurrency === 'USD' ? '$' : '£';
+  // Stripe charges in the order's NATIVE currency (GBP for UK, USD for US).
+  const stripeCurrency = orderCurrency ?? (orderRegion === 'US' ? 'USD' : 'GBP');
   const gbpTotal = payable != null
     ? `${regionSymbol}${payable.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     : null;
@@ -342,7 +344,7 @@ function ClientPaymentContent() {
                 disabled={loading !== null}
               >
                 <CreditCard className="h-4 w-4" />
-                {loading === 'stripe' ? 'Redirecting…' : `Pay ${gbpTotal ?? ''} with Stripe (GBP)`}
+                {loading === 'stripe' ? 'Redirecting…' : `Pay ${gbpTotal ?? ''} with Stripe (${stripeCurrency})`}
               </Button>
 
               <Button
@@ -360,7 +362,7 @@ function ClientPaymentContent() {
             </div>
 
             <p className="text-xs text-center text-muted-foreground">
-              Stripe charges in GBP · Paystack charges in Naira at live FX rate · All payments are secure & encrypted
+              Stripe charges in {stripeCurrency} · Paystack charges in Naira at live FX rate · All payments are secure & encrypted
             </p>
           </CardContent>
         </Card>

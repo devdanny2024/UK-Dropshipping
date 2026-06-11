@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/app/components/ui/label';
 import { Badge } from '@/app/components/ui/badge';
 import { Input } from '@/app/components/ui/input';
-import { useCart } from '@/app/components/cart/use-cart';
+import { useCart, type Region } from '@/app/components/cart/use-cart';
 import { useCurrency, US_TAX_RATE } from '@/app/hooks/use-currency';
 
 const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'UK4', 'UK5', 'UK6', 'UK7', 'UK8', 'UK9', 'UK10', 'UK11', 'UK12', 'One Size', 'Other'];
@@ -47,7 +47,7 @@ function PreviewContent() {
   const [manualError, setManualError] = useState<string | null>(null);
 
   const { addItem } = useCart();
-  const { formatAmount, toGBP } = useCurrency();
+  const { formatAmount } = useCurrency();
 
   const hasUrl = Boolean(params.get('url'));
 
@@ -557,15 +557,20 @@ function PreviewContent() {
                       const taxInclusivePrice = product.priceWithTax ?? product.price ?? 0;
                       const finalSize = size === 'Other' ? (customSize.trim() || 'Other') : size;
                       const finalColor = color === 'Other' ? (customColor.trim() || 'Other') : color;
+                      // Region follows the product's own currency: USD → US/$ basket,
+                      // everything else → UK/£. Store the NATIVE region-currency price
+                      // (no GBP conversion) — priceGBP holds the basket's native price.
+                      const region: Region = product.currency === 'USD' ? 'US' : 'UK';
                       addItem({
                         name: product.name,
                         slug: undefined,
                         imageUrl: product.image,
-                        priceGBP: toGBP(taxInclusivePrice, product.currency),
+                        priceGBP: taxInclusivePrice,
                         quantity,
                         externalUrl: product.url,
                         productCode: undefined,
                         categoryName: manualCategory || store,
+                        region,
                         size: finalSize,
                         color: finalColor
                       });

@@ -14,6 +14,8 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
   if (!product) return notFound();
 
   const imageUrl = product.images?.[0] ?? 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800';
+  // Region follows the product's native currency: USD → US/$, else UK/£.
+  const region = product.currency === 'USD' ? 'US' : 'UK';
 
   return (
     <div className="min-h-screen bg-background py-12">
@@ -35,7 +37,7 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
               <div className="text-2xl font-semibold">
                 <PriceDisplay priceGBP={product.priceGBP} />
               </div>
-              <ProductActions product={product} imageUrl={imageUrl} />
+              <ProductActions product={product} imageUrl={imageUrl} region={region} />
             </CardContent>
           </Card>
         </div>

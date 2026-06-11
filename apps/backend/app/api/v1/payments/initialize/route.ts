@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
     const successUrl = `${baseUrl}?orderId=${encodeURIComponent(order.id)}&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${process.env.CLIENT_ORIGIN ?? 'http://localhost:3000'}/pay?orderId=${encodeURIComponent(order.id)}`;
 
-    // Stripe uses smallest currency unit (pence for GBP)
+    // Stripe uses the smallest unit of the order's currency (pence for GBP,
+    // cents for USD) — × 100 is correct for both.
     const amountPence = Math.round(outstanding * 100);
 
     const stripeSession = await createStripeCheckoutSession({

@@ -5,7 +5,10 @@ import {
   getDomesticPostage,
   getStoreToWarehouseFee,
   getTaxUsPercent,
+  getShippingRatePerKgNgn,
 } from './settings';
+import { calcShippingCostNgn } from './weight';
+import { getFxRates, convertAmount } from './fx';
 
 /** A single line on the draft invoice, grouped under a store. */
 export type InvoiceDraftLineItem = {
@@ -88,7 +91,7 @@ export async function buildInvoiceDraft(orderId: string): Promise<InvoiceDraft> 
       qty: item.qty,
       unitPrice: item.unitPrice,
       lineTotal: item.total,
-      weightGrams: null,
+      weightGrams: item.chargeableWeightGrams ?? null,
     };
   });
 
@@ -113,10 +116,28 @@ export async function buildInvoiceDraft(orderId: string): Promise<InvoiceDraft> 
     getDomesticPostage(),
   ]);
 
-  // Nigeria postage: per-item manual delivery price when set, else 0.
-  const nigeriaPostage = round2(
-    order.items.reduce((sum, item) => sum + (item.manualDeliveryPrice ?? 0), 0),
-  );
+  // Nigeria postage: per item, use the admin manual override when set (already
+  // in order currency), else derive from chargeable weight (priced in NGN, then
+  // FX-converted to the order currency). Items with neither contribute 0.
+  let fxConversionFailed = false;
+  const ratePerKgNgn = await getShippingRatePerKgNgn();
+  let nigeriaPostage = 0;
+  for (const item of order.items) {
+    if (item.manualDeliveryPrice != null) {
+      nigeriaPostage += item.manualDeliveryPrice;
+    } else if (item.chargeableWeightGrams != null) {
+      const ngn = calcShippingCostNgn(item.chargeableWeightGrams * item.qty, ratePerKgNgn);
+      try {
+        const { rates } = await getFxRates('NGN', [currency]);
+        const rate = rates[currency.toUpperCase()];
+        if (!rate || !Number.isFinite(rate)) throw new Error('missing rate');
+        nigeriaPostage += convertAmount(ngn, rate);
+      } catch {
+        fxConversionFailed = true;
+      }
+    }
+  }
+  nigeriaPostage = round2(nigeriaPostage);
 
   const total = round2(
     itemsSubtotal +
@@ -130,6 +151,9 @@ export async function buildInvoiceDraft(orderId: string): Promise<InvoiceDraft> 
 
   // Flag zero/missing fee lines so the admin can correct them before sending.
   const warnings: string[] = [];
+  if (fxConversionFailed) {
+    warnings.push('Could not FX-convert weight-based Nigeria postage — set a per-item delivery price.');
+  }
   if (nigeriaPostage === 0) {
     warnings.push('Nigeria postage is 0 — set a per-item delivery price.');
   }

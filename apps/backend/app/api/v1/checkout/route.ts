@@ -146,10 +146,17 @@ export async function POST(request: NextRequest) {
       if (!input) continue;
 
       // A client-supplied weight means we can price the item automatically.
-      if (typeof input.weightKg === 'number' && input.weightKg > 0) continue;
+      if (typeof input.weightKg === 'number' && input.weightKg > 0) {
+        await prisma.orderItem.update({
+          where: { id: item.id },
+          data: { chargeableWeightGrams: Math.round(input.weightKg * 1000) },
+        });
+        continue;
+      }
 
       let source = 'fallback';
       let requiresManualWeight = false;
+      let resolvedWeightGrams: number | null = null;
       if (input.categoryName) {
         const category = await prisma.category.findFirst({
           where: { name: { equals: input.categoryName, mode: 'insensitive' } },
@@ -159,10 +166,21 @@ export async function POST(request: NextRequest) {
           requiresManualWeight = category.requiresManualWeight;
           const resolved = await resolveChargeableWeight(null, category.id, input.name);
           source = resolved.source;
+          resolvedWeightGrams = resolved.chargeableWeightGrams;
         }
       }
 
-      if (!isNoWeight(source, requiresManualWeight)) continue;
+      // AUTO items (a category resolved to a weight): persist the chargeable
+      // weight so the invoice can price Nigeria postage; no manual request.
+      if (!isNoWeight(source, requiresManualWeight)) {
+        if (resolvedWeightGrams != null) {
+          await prisma.orderItem.update({
+            where: { id: item.id },
+            data: { chargeableWeightGrams: resolvedWeightGrams },
+          });
+        }
+        continue;
+      }
 
       const snap = snapshots.find((s) => s.id === item.productSnapshotId);
       await prisma.orderItem.update({

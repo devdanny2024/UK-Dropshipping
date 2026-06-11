@@ -7,13 +7,17 @@ import { useCart, type Region } from '@/app/components/cart/use-cart';
 export function ProductActions({
   product,
   imageUrl,
-  region = 'UK',
+  region,
 }: {
   product: any;
   imageUrl: string;
   region?: Region;
 }) {
   const { addItem, canAddItem, items } = useCart();
+
+  // Region follows the product's native currency: USD → US/$, else UK/£.
+  // An explicit region prop wins; products without a currency default to UK.
+  const itemRegion: Region = region ?? (product.currency === 'USD' ? 'US' : 'UK');
 
   const item = {
     productId: product.id,
@@ -24,7 +28,7 @@ export function ProductActions({
     quantity: 1,
     externalUrl: product.externalUrl ?? undefined,
     categoryName: product.category?.name,
-    region,
+    region: itemRegion,
   };
 
   const blocked = items.length > 0 && !canAddItem(item);
@@ -36,7 +40,7 @@ export function ProductActions({
           'You can only buy from one region (UK or US) per basket. Clear it and start a new basket?'
       );
       if (!ok) return;
-      useCart.getState().setRegion(region);
+      useCart.getState().setRegion(itemRegion);
     }
     addItem(item);
   };

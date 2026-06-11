@@ -224,6 +224,8 @@ model OrderItem {
   weightStatus        WeightPriceStatus @default(AUTO)
   manualDeliveryPrice Float?
   manualPriceCurrency String?
+  // Weight-based Nigeria postage — resolved chargeable weight per item (null = manual/unknown)
+  chargeableWeightGrams Int?
   order             Order           @relation(fields: [orderId], references: [id])
   productSnapshot   ProductSnapshot @relation(fields: [productSnapshotId], references: [id])
 }
