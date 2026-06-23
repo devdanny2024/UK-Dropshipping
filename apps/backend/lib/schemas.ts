@@ -73,7 +73,8 @@ export const shipmentSchema = z.object({
 export const signupSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
-  password: z.string().min(8)
+  password: z.string().min(8),
+  phone: z.string().min(6).optional()
 });
 
 export const loginSchema = z.object({
@@ -115,6 +116,11 @@ export const resendVerificationSchema = z.object({
 export const updateProfileSchema = z.object({
   name: z.string().min(2).optional(),
   phone: z.string().min(6).optional()
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8)
 });
 
 export const addressSchema = z.object({

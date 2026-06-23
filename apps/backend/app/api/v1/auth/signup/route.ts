@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
     data: {
       email: data.email.toLowerCase(),
       name: data.name,
-      passwordHash: hashPassword(data.password)
+      passwordHash: hashPassword(data.password),
+      phone: data.phone ?? undefined
     }
   });
 

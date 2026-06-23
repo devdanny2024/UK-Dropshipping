@@ -11,6 +11,14 @@ import { Separator } from '@/app/components/ui/separator';
 import { Badge } from '@/app/components/ui/badge';
 import { useCart, itemKey, REGION_CURRENCY, REGION_SYMBOL } from '@/app/components/cart/use-cart';
 
+const NIGERIAN_STATES = [
+  'Abia','Adamawa','Akwa Ibom','Anambra','Bauchi','Bayelsa','Benue','Borno',
+  'Cross River','Delta','Ebonyi','Edo','Ekiti','Enugu','FCT','Gombe','Imo',
+  'Jigawa','Kaduna','Kano','Katsina','Kebbi','Kogi','Kwara','Lagos','Nasarawa',
+  'Niger','Ogun','Ondo','Osun','Oyo','Plateau','Rivers','Sokoto','Taraba',
+  'Yobe','Zamfara',
+];
+
 type DeliveryType = 'door' | 'pickup';
 
 export default function CheckoutPage() {
@@ -213,7 +221,13 @@ export default function CheckoutPage() {
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="phone">Phone number *</Label>
-                      <Input id="phone" value={form.phone} onChange={set('phone')} placeholder="+234 800 000 0000" required minLength={6} />
+                      <div className="flex gap-2">
+                        <div className="flex items-center gap-1.5 rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground shrink-0">
+                          <span>🇳🇬</span>
+                          <span>+234</span>
+                        </div>
+                        <Input id="phone" value={form.phone} onChange={set('phone')} placeholder="800 000 0000" required minLength={6} className="flex-1" />
+                      </div>
                     </div>
                   </div>
 
@@ -234,7 +248,17 @@ export default function CheckoutPage() {
                         </div>
                         <div className="space-y-1.5">
                           <Label htmlFor="state">State</Label>
-                          <Input id="state" value={form.state} onChange={set('state')} placeholder="Lagos State" />
+                          <select
+                            id="state"
+                            value={form.state}
+                            onChange={(e) => setForm((prev) => ({ ...prev, state: e.target.value }))}
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                          >
+                            <option value="">Select state</option>
+                            {NIGERIAN_STATES.map((s) => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
                         </div>
                         <div className="space-y-1.5">
                           <Label htmlFor="postalCode">Postcode</Label>

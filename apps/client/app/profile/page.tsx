@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Mail, MapPin, Phone, Check, LogOut } from 'lucide-react';
+import { Mail, Phone, Check, LogOut, Eye, EyeOff, Lock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
@@ -9,6 +9,14 @@ import { Separator } from '@/app/components/ui/separator';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { AccountShell } from '@/app/components/AccountShell';
+
+const NIGERIAN_STATES = [
+  'Abia','Adamawa','Akwa Ibom','Anambra','Bauchi','Bayelsa','Benue','Borno',
+  'Cross River','Delta','Ebonyi','Edo','Ekiti','Enugu','FCT','Gombe','Imo',
+  'Jigawa','Kaduna','Kano','Katsina','Kebbi','Kogi','Kwara','Lagos','Nasarawa',
+  'Niger','Ogun','Ondo','Osun','Oyo','Plateau','Rivers','Sokoto','Taraba',
+  'Yobe','Zamfara',
+];
 
 type AddressType = 'SHIPPING' | 'BILLING';
 
@@ -38,16 +46,21 @@ export default function ClientProfilePage() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
-  const [savingAddress, setSavingAddress] = useState<AddressType | null>(null);
+  const [savingAddress, setSavingAddress] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState(false);
+
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [pwSuccess, setPwSuccess] = useState(false);
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/proxy';
 
   const shippingAddress = useMemo(
-    () => addresses.find((address) => address.type === 'SHIPPING' && address.isDefault) ?? addresses.find((address) => address.type === 'SHIPPING'),
-    [addresses]
-  );
-  const billingAddress = useMemo(
-    () => addresses.find((address) => address.type === 'BILLING' && address.isDefault) ?? addresses.find((address) => address.type === 'BILLING'),
+    () => addresses.find((a) => a.type === 'SHIPPING' && a.isDefault) ?? addresses.find((a) => a.type === 'SHIPPING'),
     [addresses]
   );
 
@@ -72,9 +85,7 @@ export default function ClientProfilePage() {
       }
     };
     void loadProfile();
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [apiBase]);
 
   const handleLogout = async () => {
@@ -86,6 +97,7 @@ export default function ClientProfilePage() {
     event.preventDefault();
     setSavingProfile(true);
     setError(null);
+    setProfileSuccess(false);
 
     const formData = new FormData(event.currentTarget);
     const name = String(formData.get('name') ?? '').trim();
@@ -106,6 +118,8 @@ export default function ClientProfilePage() {
         throw new Error(payload?.error?.message ?? 'Unable to update profile');
       }
       setUser(payload.user);
+      setProfileSuccess(true);
+      setTimeout(() => setProfileSuccess(false), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to update profile');
     } finally {
@@ -113,12 +127,51 @@ export default function ClientProfilePage() {
     }
   };
 
-  const handleAddressSubmit = async (
-    event: React.FormEvent<HTMLFormElement>,
-    type: AddressType
-  ) => {
+  const handlePasswordChange = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSavingAddress(type);
+    setPwLoading(true);
+    setPwError(null);
+    setPwSuccess(false);
+
+    const formData = new FormData(event.currentTarget);
+    const currentPassword = String(formData.get('currentPassword') ?? '');
+    const newPassword = String(formData.get('newPassword') ?? '');
+    const confirmPassword = String(formData.get('confirmNewPassword') ?? '');
+
+    if (newPassword.length < 8) {
+      setPwError('New password must be at least 8 characters.');
+      setPwLoading(false);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwError('New passwords do not match.');
+      setPwLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiBase}/v1/me/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload?.error?.message ?? 'Unable to change password');
+      }
+      setPwSuccess(true);
+      setChangingPassword(false);
+    } catch (err) {
+      setPwError(err instanceof Error ? err.message : 'Unable to change password');
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
+  const handleAddressSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSavingAddress(true);
     setError(null);
 
     const formData = new FormData(event.currentTarget);
@@ -131,7 +184,7 @@ export default function ClientProfilePage() {
       postalCode: String(formData.get('postalCode') ?? '').trim(),
       country: String(formData.get('country') ?? '').trim(),
       phone: String(formData.get('addressPhone') ?? '').trim() || undefined,
-      type,
+      type: 'SHIPPING' as const,
       isDefault: true
     };
 
@@ -150,7 +203,7 @@ export default function ClientProfilePage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to save address');
     } finally {
-      setSavingAddress(null);
+      setSavingAddress(false);
     }
   };
 
@@ -170,7 +223,7 @@ export default function ClientProfilePage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Profile</CardTitle>
-            <div className="text-sm text-muted-foreground">Manage your account and delivery addresses</div>
+            <div className="text-sm text-muted-foreground">Manage your account and delivery address</div>
           </div>
           <Button variant="outline" className="gap-2" onClick={handleLogout}>
             <LogOut className="h-4 w-4" />
@@ -180,164 +233,199 @@ export default function ClientProfilePage() {
         <CardContent className="space-y-6">
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <form className="grid gap-4 md:grid-cols-3" onSubmit={handleProfileSubmit}>
-            <div className="flex items-center gap-3">
-              <Mail className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <div className="text-sm text-muted-foreground">Email</div>
-                <div className="font-medium">{user?.email}</div>
+          <form className="space-y-4" onSubmit={handleProfileSubmit}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="flex items-center gap-3 rounded-md border border-input bg-muted px-3 py-2 text-sm">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span>{user?.email}</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="name">Full name</Label>
+                <Input id="name" name="name" defaultValue={user?.name ?? ''} placeholder="Your name" />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="name">Full name</Label>
-              <Input id="name" name="name" defaultValue={user?.name ?? ''} placeholder="Your name" />
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone number</Label>
+                <div className="flex gap-2">
+                  <div className="flex items-center gap-1.5 rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground shrink-0">
+                    <span>🇳🇬</span>
+                    <span>+234</span>
+                  </div>
+                  <Input id="phone" name="phone" type="tel" defaultValue={user?.phone ?? ''} placeholder="800 000 0000" className="flex-1" />
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" name="phone" defaultValue={user?.phone ?? ''} placeholder="+234..." />
-            </div>
-            <div className="md:col-span-3">
+            <div className="flex items-center gap-3">
               <Button type="submit" disabled={savingProfile}>
                 {savingProfile ? 'Saving...' : 'Save profile'}
               </Button>
+              {profileSuccess && <span className="text-sm text-green-600 flex items-center gap-1"><Check className="h-4 w-4" /> Saved</span>}
             </div>
           </form>
 
           <Separator />
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Shipping address</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-muted-foreground">
-                {shippingAddress ? (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-foreground">{shippingAddress.label ?? 'Primary'}</span>
-                      {shippingAddress.isDefault && (
-                        <Badge variant="default" className="gap-1">
-                          <Check className="h-3 w-3" />
-                          Default
-                        </Badge>
-                      )}
-                    </div>
-                    <div>{shippingAddress.line1}</div>
-                    {shippingAddress.line2 && <div>{shippingAddress.line2}</div>}
-                    <div>
-                      {shippingAddress.city}
-                      {shippingAddress.state ? `, ${shippingAddress.state}` : ''} {shippingAddress.postalCode}
-                    </div>
-                    <div>{shippingAddress.country}</div>
-                    {shippingAddress.phone && <div>{shippingAddress.phone}</div>}
-                  </>
-                ) : (
-                  <form className="space-y-3" onSubmit={(event) => handleAddressSubmit(event, 'SHIPPING')}>
-                    <Label>Complete shipping address</Label>
-                    <Input name="label" placeholder="Label (Home, Office)" />
-                    <Input name="line1" placeholder="Address line 1" required />
-                    <Input name="line2" placeholder="Address line 2 (optional)" />
-                    <Input name="city" placeholder="City" required />
-                    <Input name="state" placeholder="State/Region" />
-                    <Input name="postalCode" placeholder="Postal code" required />
-                    <Input name="country" placeholder="Country" required />
-                    <Input name="addressPhone" placeholder="Phone for delivery" />
-                    <Button type="submit" disabled={savingAddress === 'SHIPPING'}>
-                      {savingAddress === 'SHIPPING' ? 'Saving...' : 'Save shipping address'}
-                    </Button>
-                  </form>
-                )}
-              </CardContent>
-            </Card>
+          {/* Change Password */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold flex items-center gap-2">
+                <Lock className="h-4 w-4" /> Password
+              </h3>
+              {!changingPassword && (
+                <Button variant="outline" size="sm" onClick={() => { setChangingPassword(true); setPwSuccess(false); }}>
+                  Change password
+                </Button>
+              )}
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Billing address</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-muted-foreground">
-                {billingAddress ? (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-foreground">{billingAddress.label ?? 'Primary'}</span>
-                      {billingAddress.isDefault && (
-                        <Badge variant="default" className="gap-1">
-                          <Check className="h-3 w-3" />
-                          Default
-                        </Badge>
-                      )}
-                    </div>
-                    <div>{billingAddress.line1}</div>
-                    {billingAddress.line2 && <div>{billingAddress.line2}</div>}
-                    <div>
-                      {billingAddress.city}
-                      {billingAddress.state ? `, ${billingAddress.state}` : ''} {billingAddress.postalCode}
-                    </div>
-                    <div>{billingAddress.country}</div>
-                    {billingAddress.phone && <div>{billingAddress.phone}</div>}
-                  </>
-                ) : (
-                  <form className="space-y-3" onSubmit={(event) => handleAddressSubmit(event, 'BILLING')}>
-                    <Label>Complete billing address</Label>
-                    <Input name="label" placeholder="Label (Billing, Office)" />
-                    <Input name="line1" placeholder="Address line 1" required />
-                    <Input name="line2" placeholder="Address line 2 (optional)" />
-                    <Input name="city" placeholder="City" required />
-                    <Input name="state" placeholder="State/Region" />
-                    <Input name="postalCode" placeholder="Postal code" required />
-                    <Input name="country" placeholder="Country" required />
-                    <Input name="addressPhone" placeholder="Phone for billing" />
-                    <Button type="submit" disabled={savingAddress === 'BILLING'}>
-                      {savingAddress === 'BILLING' ? 'Saving...' : 'Save billing address'}
-                    </Button>
-                  </form>
-                )}
-              </CardContent>
-            </Card>
+            {pwSuccess && !changingPassword && (
+              <p className="text-sm text-green-600 flex items-center gap-1"><Check className="h-4 w-4" /> Password changed successfully</p>
+            )}
+
+            {changingPassword && (
+              <form className="space-y-3 max-w-sm" onSubmit={handlePasswordChange}>
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Current password</Label>
+                  <div className="relative">
+                    <Input id="currentPassword" name="currentPassword" type={showCurrentPw ? 'text' : 'password'} required />
+                    <button type="button" onClick={() => setShowCurrentPw((v) => !v)} className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground">
+                      {showCurrentPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New password</Label>
+                  <div className="relative">
+                    <Input id="newPassword" name="newPassword" type={showNewPw ? 'text' : 'password'} required minLength={8} />
+                    <button type="button" onClick={() => setShowNewPw((v) => !v)} className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground">
+                      {showNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmNewPassword">Confirm new password</Label>
+                  <Input id="confirmNewPassword" name="confirmNewPassword" type="password" required minLength={8} />
+                </div>
+                {pwError && <p className="text-sm text-destructive">{pwError}</p>}
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={pwLoading}>
+                    {pwLoading ? 'Changing...' : 'Change password'}
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={() => { setChangingPassword(false); setPwError(null); }}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            )}
           </div>
 
           <Separator />
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Saved Addresses</h3>
-            <div className="grid gap-4 md:grid-cols-2">
-              {addresses.map((address) => (
-                <Card key={address.id}>
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="font-medium">{address.label ?? 'Address'}</div>
-                      {address.isDefault && (
-                        <Badge variant="default" className="gap-1">
-                          <Check className="h-3 w-3" />
-                          Default
-                        </Badge>
-                      )}
+          {/* Shipping Address (= Billing Address) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Shipping / Billing Address</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              {shippingAddress ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-foreground">{shippingAddress.label ?? 'Primary'}</span>
+                    {shippingAddress.isDefault && (
+                      <Badge variant="default" className="gap-1">
+                        <Check className="h-3 w-3" />
+                        Default
+                      </Badge>
+                    )}
+                  </div>
+                  <div>{shippingAddress.line1}</div>
+                  {shippingAddress.line2 && <div>{shippingAddress.line2}</div>}
+                  <div>
+                    {shippingAddress.city}
+                    {shippingAddress.state ? `, ${shippingAddress.state}` : ''} {shippingAddress.postalCode}
+                  </div>
+                  <div>{shippingAddress.country}</div>
+                  {shippingAddress.phone && (
+                    <div className="flex items-center gap-1.5">
+                      <Phone className="h-3.5 w-3.5" />
+                      {shippingAddress.phone}
                     </div>
-                    <div className="text-xs text-muted-foreground uppercase">{address.type}</div>
-                    <div className="text-sm text-muted-foreground">
-                      <div>{address.line1}</div>
-                      {address.line2 && <div>{address.line2}</div>}
-                      <div>
-                        {address.city}
-                        {address.state ? `, ${address.state}` : ''} {address.postalCode}
-                      </div>
-                      <div>{address.country}</div>
-                      {address.phone && <div>{address.phone}</div>}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              {addresses.length === 0 && (
-                <Card>
-                  <CardContent className="p-6 text-sm text-muted-foreground">
-                    No saved addresses yet. Add shipping and billing addresses above.
-                  </CardContent>
-                </Card>
+                  )}
+                </>
+              ) : (
+                <form className="space-y-3" onSubmit={handleAddressSubmit}>
+                  <Label>Complete your address</Label>
+                  <Input name="label" placeholder="Nickname (Home, Shop)" />
+                  <Input name="line1" placeholder="Address line 1" required />
+                  <Input name="line2" placeholder="Address line 2 (optional)" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input name="city" placeholder="City" required />
+                    <select
+                      name="state"
+                      className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>Select state</option>
+                      {NIGERIAN_STATES.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input name="postalCode" placeholder="Postal code" required />
+                    <Input name="country" placeholder="Country" defaultValue="Nigeria" required />
+                  </div>
+                  <Input name="addressPhone" placeholder="Phone for delivery" />
+                  <Button type="submit" disabled={savingAddress}>
+                    {savingAddress ? 'Saving...' : 'Save address'}
+                  </Button>
+                </form>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
+
+          {/* Saved Addresses */}
+          {addresses.length > 0 && (
+            <>
+              <Separator />
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Saved Addresses</h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {addresses.map((address) => (
+                    <Card key={address.id}>
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium">{address.label ?? 'Address'}</div>
+                          {address.isDefault && (
+                            <Badge variant="default" className="gap-1">
+                              <Check className="h-3 w-3" />
+                              Default
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          <div>{address.line1}</div>
+                          {address.line2 && <div>{address.line2}</div>}
+                          <div>
+                            {address.city}
+                            {address.state ? `, ${address.state}` : ''} {address.postalCode}
+                          </div>
+                          <div>{address.country}</div>
+                          {address.phone && <div>{address.phone}</div>}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </AccountShell>
   );
 }
-

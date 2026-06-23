@@ -125,6 +125,7 @@ function SignupContent() {
     const formData = new FormData(event.currentTarget);
     const name = String(formData.get('name') ?? '');
     const email = String(formData.get('email') ?? '');
+    const phone = String(formData.get('phone') ?? '').trim();
     const formPassword = String(formData.get('password') ?? '');
     const formConfirm = String(formData.get('confirmPassword') ?? '');
 
@@ -145,7 +146,7 @@ function SignupContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ name, email, password: formPassword })
+        body: JSON.stringify({ name, email, password: formPassword, phone: phone || undefined })
       });
 
       const payload = await response.json();
@@ -265,6 +266,16 @@ function SignupContent() {
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" name="email" type="email" placeholder="you@example.com" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone number</Label>
+                <div className="flex gap-2">
+                  <div className="flex items-center gap-1.5 rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground shrink-0">
+                    <span>🇳🇬</span>
+                    <span>+234</span>
+                  </div>
+                  <Input id="phone" name="phone" type="tel" placeholder="800 000 0000" className="flex-1" />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>

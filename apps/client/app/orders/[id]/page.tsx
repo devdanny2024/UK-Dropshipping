@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Component, type ReactNode } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
@@ -14,6 +14,12 @@ import { OrderComplaints } from '@/app/components/OrderComplaints';
 import { WeightPriceRequest } from '@/app/components/WeightPriceRequest';
 import { useCurrency } from '@/app/hooks/use-currency';
 
+class OrderErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() { return this.state.hasError ? this.props.fallback : this.props.children; }
+}
+
 type OrderEvent = { id: string; type: string; message: string; createdAt: string };
 type Shipment = { id: string; carrier: string; trackingNumber: string; status: string };
 type OrderDetail = {
@@ -25,8 +31,8 @@ type OrderDetail = {
   items: Array<{
     id: string;
     qty: number;
-    size: string;
-    color: string;
+    size?: string;
+    color?: string;
     unitPrice: number;
     weightStatus?: string;
     productSnapshot?: { title?: string; url?: string; imageUrl?: string };
@@ -40,12 +46,30 @@ type OrderDetail = {
 };
 
 export default function ClientTrackingPage() {
+  return (
+    <OrderErrorBoundary
+      fallback={
+        <AccountShell title="Orders">
+          <div className="flex flex-col items-center gap-4 py-12">
+            <p className="text-sm text-destructive">Something went wrong loading this order.</p>
+            <Button variant="outline" onClick={() => window.location.href = '/orders'}>Back to Orders</Button>
+          </div>
+        </AccountShell>
+      }
+    >
+      <OrderDetailContent />
+    </OrderErrorBoundary>
+  );
+}
+
+function OrderDetailContent() {
   const router = useRouter();
   const params = useParams();
   const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { formatAmount } = useCurrency();
 
   useEffect(() => {
     if (!rawId) return;
@@ -78,8 +102,8 @@ export default function ClientTrackingPage() {
     );
   }
 
-  const firstItem = order.items[0];
-  const { formatAmount } = useCurrency();
+  const firstItem = order.items?.[0];
+  const totalNum = typeof order.total === 'number' ? order.total : Number(order.total) || 0;
 
   return (
     <AccountShell title="Orders">
@@ -103,12 +127,12 @@ export default function ClientTrackingPage() {
             <div className="grid gap-4 md:grid-cols-3">
               <div>
                 <div className="text-sm text-muted-foreground">Total Paid</div>
-                <div className="font-medium">{formatAmount(order.total, order.currency)}</div>
+                <div className="font-medium">{formatAmount(totalNum, order.currency)}</div>
               </div>
               {firstItem && (
                 <div>
                   <div className="text-sm text-muted-foreground">Variant</div>
-                  <div className="font-medium">{firstItem.size} / {firstItem.color} × {firstItem.qty}</div>
+                  <div className="font-medium">{[firstItem.size, firstItem.color].filter(Boolean).join(' / ')} × {firstItem.qty}</div>
                 </div>
               )}
               <div>
@@ -122,7 +146,7 @@ export default function ClientTrackingPage() {
               <OrderStatusTimeline status={order.status} />
             </div>
 
-            {order.events.length > 0 && (
+            {(order.events?.length ?? 0) > 0 && (
               <div>
                 <h3 className="text-lg font-semibold mb-3">Timeline</h3>
                 <div className="space-y-4">
@@ -142,7 +166,7 @@ export default function ClientTrackingPage() {
               </div>
             )}
 
-            {order.shipments.length > 0 && (
+            {(order.shipments?.length ?? 0) > 0 && (
               <div>
                 <h3 className="text-lg font-semibold mb-3">Shipment</h3>
                 {order.shipments.map((shipment) => (
@@ -181,7 +205,7 @@ export default function ClientTrackingPage() {
 
         <OrderInvoice orderId={order.id} currency={order.currency} />
 
-        <WeightPriceRequest orderId={order.id} items={order.items} />
+        <WeightPriceRequest orderId={order.id} items={order.items ?? []} />
 
         <OrderComplaints orderId={order.id} />
       </div>
