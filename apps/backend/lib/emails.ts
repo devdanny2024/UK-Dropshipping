@@ -81,6 +81,22 @@ export function resendVerificationEmail(name: string, token: string) {
   return { subject, html, text };
 }
 
+export function magicLoginCodeEmail(email: string, code: string) {
+  const subject = 'Your UK2ME sign-in code';
+  const html = layout('Your sign-in code', `
+    <p style="margin:0 0 16px;">Hi, here is your one-time sign-in code for <strong>${email}</strong>.</p>
+    <div style="text-align:center;margin:24px 0;">
+      <div style="display:inline-block;background:#F0EDF8;border:2px solid #7C3AED;border-radius:12px;padding:16px 32px;">
+        <span style="font-size:36px;font-weight:700;letter-spacing:10px;color:#5B21B6;">${code}</span>
+      </div>
+    </div>
+    <p style="margin:0 0 8px;color:#374151;">Enter this code on the sign-in page. It expires in <strong>10 minutes</strong>.</p>
+    <p style="margin:0;color:#6b7280;font-size:13px;">If you did not request this code, you can safely ignore this email — your account has not been affected.</p>
+  `);
+  const text = `Your UK2ME sign-in code: ${code}\n\nThis code expires in 10 minutes.`;
+  return { subject, html, text };
+}
+
 export function forgotPasswordEmail(name: string, token: string) {
   const url = `${clientUrl()}/reset-password?token=${token}`;
   const subject = 'Reset your UK2ME Online password';

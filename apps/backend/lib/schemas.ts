@@ -90,6 +90,15 @@ export const forgotPasswordSchema = z.object({
   email: z.string().email()
 });
 
+export const magicRequestSchema = z.object({
+  email: z.string().email()
+});
+
+export const magicVerifySchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6)
+});
+
 export const verifyEmailSchema = z.object({
   token: z.string().min(10)
 });

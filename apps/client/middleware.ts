@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const PUBLIC_PATHS = ['/', '/login', '/signup', '/stores', '/preview', '/categories', '/category', '/product', '/shop'];
-const PROTECTED_PREFIXES = ['/orders', '/profile', '/pay', '/quote', '/dashboard', '/track-order', '/invoices', '/cart'];
+const PROTECTED_PREFIXES = ['/orders', '/profile', '/pay', '/quote', '/dashboard', '/track-order', '/invoices'];
 const COOKIE_NAME = 'client_session';
 
 export function middleware(request: NextRequest) {

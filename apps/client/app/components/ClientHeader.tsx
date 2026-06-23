@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Menu, Package, Store, User, ShoppingBag, ShoppingCart } from 'lucide-react';
+import { Menu, Package, Store, User, ShoppingCart } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { ThemeToggle } from '@/app/components/theme-toggle';
 import { useCart } from '@/app/components/cart/use-cart';
@@ -50,7 +50,7 @@ export function ClientHeader() {
   const cartCount = useCart((state) => state.count());
 
   useEffect(() => {
-    fetch(`${apiBase}/v1/auth/session`, { credentials: 'include' })
+    fetch(`${apiBase}/v1/auth/session`, { credentials: 'include', cache: 'no-store' })
       .then((res) => res.json())
       .then((payload) => setIsAuthed(Boolean(payload?.ok)))
       .catch(() => setIsAuthed(false));
@@ -88,31 +88,10 @@ export function ClientHeader() {
       show: true,
     },
     {
-      href: '/orders',
-      label: 'My Orders',
-      icon: <ShoppingBag className="h-4 w-4" />,
-      active: isOrders,
-      show: isAuthed,
-    },
-    {
-      href: '/profile',
-      label: 'Profile',
-      icon: <User className="h-4 w-4" />,
-      active: pathname === '/profile',
-      show: isAuthed,
-    },
-    {
       href: '/login',
-      label: 'Log in',
+      label: 'Login / Sign up',
       icon: null,
-      active: pathname === '/login',
-      show: !isAuthed,
-    },
-    {
-      href: '/signup',
-      label: 'Sign up',
-      icon: null,
-      active: pathname === '/signup',
+      active: pathname === '/login' || pathname === '/signup',
       show: !isAuthed,
     },
   ];
