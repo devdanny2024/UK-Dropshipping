@@ -94,8 +94,7 @@ export async function GET(request: NextRequest) {
     orderBy: { createdAt: 'desc' },
     include: {
       items: {
-        include: { productSnapshot: { select: { title: true, url: true, imageUrl: true } } },
-        take: 1
+        include: { productSnapshot: { select: { title: true, url: true, imageUrl: true } } }
       }
     }
   });
@@ -109,7 +108,18 @@ export async function GET(request: NextRequest) {
       createdAt: order.createdAt.toISOString(),
       productTitle: order.items[0]?.productSnapshot?.title ?? null,
       productUrl: order.items[0]?.productSnapshot?.url ?? null,
-      productImage: order.items[0]?.productSnapshot?.imageUrl ?? null
+      productImage: order.items[0]?.productSnapshot?.imageUrl ?? null,
+      items: order.items.map((item) => ({
+        id: item.id,
+        qty: item.qty,
+        size: item.size,
+        color: item.color,
+        unitPrice: item.unitPrice,
+        total: item.total,
+        title: item.productSnapshot?.title ?? null,
+        imageUrl: item.productSnapshot?.imageUrl ?? null,
+        url: item.productSnapshot?.url ?? null,
+      }))
     }))
   );
 }
