@@ -26,5 +26,4 @@ WORKDIR /app
 COPY --from=build /app/node_modules /app/node_modules
 COPY --from=build /app/apps/backend /app/apps/backend
 EXPOSE 4000
-# Run migrations then start — ensures DB schema is always up to date on deploy
-CMD sh -c 'cd /app/apps/backend && npx prisma migrate deploy && pnpm --filter @uk2me/backend start'
+CMD ["pnpm", "--filter", "@uk2me/backend", "start"]

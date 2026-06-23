@@ -1,0 +1,88 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: uk2me_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-uk2me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - uk2me_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: uk2me_redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - uk2me_net
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: uk2me_backend
+    restart: always
+    env_file: apps/backend/.env.prod
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-uk2me}
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - uk2me_net
+
+  # One-off migration runner — used by CI deploy, not kept running
+  backend-migrate:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: uk2me_migrate
+    env_file: apps/backend/.env.prod
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-uk2me}
+    command: sh -c 'cd /app/apps/backend && npx prisma migrate deploy'
+    depends_on:
+      - postgres
+    networks:
+      - uk2me_net
+    profiles:
+      - migrate
+
+  backend-worker:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: uk2me_worker
+    restart: always
+    env_file: apps/backend/.env.prod
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-uk2me}
+      REDIS_URL: redis://redis:6379
+    command: sh -c 'cd /app/apps/backend && pnpm worker'
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - uk2me_net
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  uk2me_net:
+    driver: bridge
