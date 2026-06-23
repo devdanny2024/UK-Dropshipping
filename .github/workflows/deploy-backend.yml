@@ -55,18 +55,24 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
-            cd ${{ secrets.VPS_PROJECT_PATH }}
+            cd /home/admin2/uk2me
 
             echo "==> Pulling latest code..."
             git pull origin main
 
-            echo "==> Building Docker image..."
-            docker compose -f docker-compose.prod.yml build backend
+            echo "==> Installing dependencies..."
+            pnpm install --no-frozen-lockfile
+
+            echo "==> Generating Prisma client..."
+            cd apps/backend && npx prisma generate && cd ../..
 
             echo "==> Running database migrations..."
-            docker compose -f docker-compose.prod.yml run --rm backend-migrate
+            cd apps/backend && npx prisma migrate deploy && cd ../..
+
+            echo "==> Building backend..."
+            pnpm --filter @uk2me/backend build
 
             echo "==> Restarting backend..."
-            docker compose -f docker-compose.prod.yml up -d --no-deps backend backend-worker
+            pm2 restart all
 
             echo "==> Done!"
